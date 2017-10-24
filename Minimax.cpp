@@ -65,10 +65,10 @@ namespace lab309 {
 			}
 	};
 	
-	Node minimaxSearch (State *currentState, const DecisionFunction &pickBestIn, const DecisionFunction &pickWorstIn, float alpha, float beta, unsigned int depthLimit) {
+	Node* minimaxSearch (State *currentState, const DecisionFunction &pickBestIn, const DecisionFunction &pickWorstIn, float alpha, float beta, unsigned int depthLimit) {
 		//if state is final or the depth limit was reached end the search
 		if (currentState.isFinal() || depthLimit == 0) {
-			return Node(currentState, currentState->evaluate(), NULL);
+			return new Node(currentState, currentState->evaluate(), NULL);
 		} else {
 			Node opponentPlay;
 			Node bestPlay;
@@ -92,14 +92,15 @@ namespace lab309 {
 			
 		RETURN:
 			bestPlay = pickBestIn.f(children);
-			currentState.child = new Node(bestPlay.state, bestPlay.value, bestPlay.child);
+			currentState.child = new Node((*bestPlay).state, (*bestPlay).value, (*bestPlay).child);
 			//clear memory of all unused states
 			for (std::list<Node>::iterator i = children.begin(); i != list.end(); i++) {
 				if (i != bestPlay) {
 					delete(i.state);
 				}
 			}
-			return *bestPlay;
+			
+			return currentState.child;
 			
 		}
 	} 
@@ -107,7 +108,16 @@ namespace lab309 {
 
 std::list<State*> lab309::minimax (const State &currentState, unsigned int maxDepth) {
 	std::list<State*> list;
-	Node bestPlay = lab309::minimaxSearch(&currentState, Max(), Min(), -INFINITY, INFINITY, maxDepth);
-	State *s = bestPlay.;
-	while (bestPlay.father
+	Node *bestPlay = minimaxSearch(&currentState, Max(), Min(), -INFINITY, INFINITY, maxDepth);
+	Node *next;
+	
+	//create list with the expected state path
+	while (bestPlay != NULL) {
+		list.push_back(bestPlay->state);
+		next = bestPlay->child;
+		delete(bestPlay);
+		bestPlay = next;
+	}
+	
+	return list;
 }
