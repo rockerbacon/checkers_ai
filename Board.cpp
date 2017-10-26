@@ -6,7 +6,7 @@ Vector<int> lab309::mapPixelToGrid (const Window &window, const Vector<int> &pix
 	int gridHeight = window.getHeight()/BOARD_COLUMS;
 	
 	v[COORDINATE_X] = (pixel[COORDINATE_X] - pixel[COORDINATE_X] % gridWidth)/gridWidth;
-	v[COORDINATE_Y] = (pixel[COORDINATE_Y] - pixel[COORDINATE_Y] % gridHeight)/gridHeight;
+	v[COORDINATE_Y] = ((pixel[COORDINATE_Y]+window.getHeight())%window.getHeight() - pixel[COORDINATE_Y] % gridHeight)/gridHeight;
 	
 	return v;
 }
