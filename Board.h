@@ -24,9 +24,8 @@
 //Possible movement directions, used for creating a direction map
 #define FORWARDS 0x1
 #define BACKWARDS 0
-#define LEFT 0x2
-#define RIGHT 0
-#define OVER 0x4	//Will be used internally by the functions, do not use
+#define RIGHT 0x2
+#define LEFT 0
 
 #define POSSIBLE_DIRECTIONS 4
 
@@ -51,25 +50,24 @@ namespace lab309 {
 	
 	class Direction {
 		private:
-			int directionMap;
+			Vector<int> offset;
 			
 		public:
 			Direction (int directionMap);
 			
 			bool isForwards (void) const;
 			inline bool isBackwards (void) const { return !this->isForwards(); }
-			bool isLeft (void) const;
-			inline bool isRight (void) const { return !this->isLeft(); }
+			bool isRight (void) const;
+			inline bool isLeft (void) const { return !this->isRight(); }
 			bool inboundsFor (int checker) const;	//checks if a movement in this direction is within bounds of a checker
-			inline int getMap (void) const { return this->directionMap; }
-			
 			int operator+ (int checker) const;
+			Direction operator* (int scalar) const;
 	};
 	
 	class Board : public State {
 		
 		private:
-			int checkers[BOARD_COLUMS*BOARD_LINES/2];
+			int checkers[BOARD_COLUMS/2*BOARD_LINES];
 			mutable int toggledChecker;
 			unsigned int turn;
 			

@@ -42,46 +42,36 @@ lab309::Vector<int> lab309::mapCheckerToGrid (int i) {
 
 /*DIRECTION*/
 lab309::Direction::Direction (int directionMap) {
-	this->directionMap = directionMap;
+	this->offset = Vector<int>(2);
+	
+	this->offset[COORDINATE_X] = (directionMap&RIGHT) ? 1 : -1;
+	this->offset[COORDINATE_Y] = (directionMap&FORWARDS) ? 1 : -1;
+	
 }
 
 bool lab309::Direction::isForwards (void) const {
-	return this->directionMap & FORWARDS;
+	return this->offset[COORDINATE_Y] > 0;
 }
 
-bool lab309::Direction::isLeft (void) const {
-	return this->directionMap & LEFT;
+bool lab309::Direction::isRight (void) const {
+	return this->offset[COORDINATE_X] > 0;
 }
 
 bool lab309::Direction::inboundsFor (int checker) const {
-	bool result = checker > -1;
-	Vector<int> index = mapCheckerToGrid(checker);
-	
-	if (this->isLeft()) {
-		result = result && index[COORDINATE_X] > 0;	//can only move left if the checker is not in the far left colum
-	} else {
-		result = result && index[COORDINATE_X] < BOARD_COLUMS-1;	//can only move right if the checker is not in the far right colum
-	}
-	
-	if (this->isForwards()) {
-		//can only move forwards if checker is not at the far up line
-		result = result && index[COORDINATE_Y] < BOARD_LINES-1;
-	} else {
-		//can only move backwards if checker is not at the far down line
-		result = result && index[COORDINATE_Y] > 0;
-	}
-	
-	return result;
+	Vector<int> v = this->offset + mapCheckerToGrid(checker);
+	return v[COORDINATE_X] >= 0 && v[COORDINATE_X] < BOARD_COLUMS && v[COORDINATE_Y] >= 0 && v[COORDINATE_Y] < BOARD_LINES;
 }
 
 //returns the position for a checker that's moved in this direction
-//offsets are:
-//	Forwards left: colums/2 in even lines; colums/2-1 in odd lines
-//	Forwards right: colums/2+1 in even lines; colums/2 in odd lines
-//	Backwards left: -colums/2 in even lines; -colums/2-1 in odd lines
-//	Backwards right: -colums/2+1 in even lines; -colums/2 in odd lines
 int lab309::Direction::operator+ (int checker) const {
-	
+	Vector<int> v = mapCheckerToGrid(checker) + this->offset;
+	return mapGridToChecker(v);
+}
+
+lab309::Direction lab309::Direction::operator* (int scalar) const {
+	Direction d = *this;
+	d.offset = scalar*d.offset;
+	return d;
 }
 
 /*BOARD*/
@@ -149,18 +139,16 @@ int lab309::Board::getToggled (void) const {
 }
 
 bool lab309::Board::checkerCanCapture (const Direction &direction) const {
-	Direction overDirection = Direction(direction.getMap()|OVER);
-	
 	//checker can capture if the movement is valid and it's a white with a black in its direction or a black with a white in its direction
-	return this->checkerCanMove(overDirection) && (	this->hasWhiteCheckerAt(this->toggledChecker) && this->hasBlackCheckerAt(this->toggledChecker+direction) ||
-													this->hasBlackCheckerAt(this->toggledChecker) && this->hasWhiteCheckerAt(this->toggledChecker+direction) );
+	return this->checkerCanMove(direction*2) && (	this->hasWhiteCheckerAt(this->toggledChecker) && this->hasBlackCheckerAt(direction+this->toggledChecker) ||
+													this->hasBlackCheckerAt(this->toggledChecker) && this->hasWhiteCheckerAt(direction+this->toggledChecker) );
 	
 }
 
 bool lab309::Board::checkerCanMove (const Direction &direction) const {
 	bool result;
 	
-	result = direction.inboundsFor(this->toggledChecker) && this->hasEmptySquareAt(this->toggledChecker+direction);	//can only move if the square in that direction is whitin bounds and empty
+	result = direction.inboundsFor(this->toggledChecker) && this->hasEmptySquareAt(direction+this->toggledChecker);	//can only move if the square in that direction is whitin bounds and empty
 	
 	if (direction.isForwards()) {
 		//can only move forwards if checker is a white or a promoted black
@@ -189,21 +177,20 @@ bool lab309::Board::moveChecker (const Direction &direction) {
 	bool valid = false;
 	
 	if (this->checkerCanMove(direction)) {
-		this->checkers[this->toggledChecker+direction] = this->checkers[this->toggledChecker];	//moves checker
+		this->checkers[direction+this->toggledChecker] = this->checkers[this->toggledChecker];	//moves checker
 		this->checkers[this->toggledChecker] = EMPTY_SQUARE;	//removes checker
 		this->toggledChecker = -1;
 		this->turn++;
 		valid = true;
 	} else if (this->checkerCanCapture(direction)) {
 		bool switchTurn = true;
-		Direction over = Direction(direction.getMap()|OVER);
-		this->checkers[this->toggledChecker+over] = this->checkers[this->toggledChecker];	//moves checker
-		this->checkers[this->toggledChecker+direction] = EMPTY_SQUARE;	//removes opponent checker
+		this->checkers[direction*2+this->toggledChecker] = this->checkers[this->toggledChecker];	//moves checker
+		this->checkers[direction+this->toggledChecker] = EMPTY_SQUARE;	//removes opponent checker
 		this->checkers[this->toggledChecker] = EMPTY_SQUARE;	//removes checker
 		for (int j = 0; j < POSSIBLE_DIRECTIONS; j++) {
 			if (this->checkerCanCapture(Board::moveDirections[j])) {
 				switchTurn = false;
-				this->toggledChecker = this->toggledChecker+over;	//keeps track of last moved checker
+				this->toggledChecker = direction*2+this->toggledChecker;	//keeps track of last moved checker
 				break;
 			}
 		}
@@ -224,15 +211,15 @@ float lab309::Board::evaluate (void) const {
 				backwardsLeft = Direction(LEFT|BACKWARDS),
 				backwardsRight = Direction(RIGHT|BACKWARDS);			
 	
-	for (int i = 0; i < BOARD_COLUMS*BOARD_LINES/2; i++) {
+	for (int i = 0; i < BOARD_COLUMS/2*BOARD_LINES; i++) {
 		if (this->hasWhiteCheckerAt(i)) {
 			score += SCORE_WHITE_CHECKER * (this->hasPromotedCheckerAt(i) ? SCORE_PROMOTED_MULTIPLIER : 1);
-			score += this->hasWhiteCheckerAt(i+forwardsLeft) ? SCORE_WHITE_COVER : 0;
-			score += this->hasWhiteCheckerAt(i+forwardsRight) ? SCORE_WHITE_COVER : 0;
+			score += this->hasWhiteCheckerAt(forwardsLeft+i) ? SCORE_WHITE_COVER : 0;
+			score += this->hasWhiteCheckerAt(forwardsRight+i) ? SCORE_WHITE_COVER : 0;
 		} else if (this->hasBlackCheckerAt(i)) {
 			score += SCORE_BLACK_CHECKER * (this->hasPromotedCheckerAt(i) ? SCORE_PROMOTED_MULTIPLIER : 1);
-			score += this->hasBlackCheckerAt(i+backwardsLeft) ? SCORE_BLACK_COVER : 0;
-			score += this->hasBlackCheckerAt(i+backwardsRight) ? SCORE_BLACK_COVER : 0;
+			score += this->hasBlackCheckerAt(backwardsLeft+i) ? SCORE_BLACK_COVER : 0;
+			score += this->hasBlackCheckerAt(backwardsRight+i) ? SCORE_BLACK_COVER : 0;
 		}
 	}
 	

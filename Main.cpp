@@ -31,7 +31,7 @@ bool handleInput (const Window *window, Board &board) {
 					//determine click direction
 					int d = 0;
 					while (d < POSSIBLE_DIRECTIONS) {
-						if (click == board.getToggled()+Board::moveDirections[d] || click == board.getToggled()+2*Board::moveDirections[d] && board.checkerCanCapture(Board::moveDirections[d])) {
+						if (click == Board::moveDirections[d]+board.getToggled() || click == Board::moveDirections[d]*2+board.getToggled() && board.checkerCanCapture(Board::moveDirections[d])) {
 							break;
 						}
 						d++;
@@ -44,13 +44,17 @@ bool handleInput (const Window *window, Board &board) {
 			
 			//highlight possible movements
 			for (int i = 0; i < POSSIBLE_DIRECTIONS; i++) {
+				//std::cout << Board::moveDirections[i]+board.getToggled() << std::endl;	//debug
 				if (board.checkerCanMove(Board::moveDirections[i])) {
-					highlightedSquareIndex[i] = board.getToggled()+Board::moveDirections[i];
+					highlightedSquareIndex[i] = Board::moveDirections[i]+board.getToggled();
+					std::cout << "Can move at direction " << i << std::endl;	//debug
 				} else if (board.checkerCanCapture(Board::moveDirections[i])) {
-					highlightedSquareIndex[i] = board.getToggled()+Direction(Board::moveDirections[i].getMap()|OVER);
+					highlightedSquareIndex[i] = Board::moveDirections[i]*2+board.getToggled();
+					std::cout << "Can capture at direction " << i << std::endl;	//debug
 				} else {
 					highlightedSquareIndex[i] = -1;
 				}
+				//std::cout << highlightedSquareIndex[i] << std::endl;	//debug
 			}
 		}
 	}
