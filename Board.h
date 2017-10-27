@@ -10,6 +10,7 @@
 #include "Lab309_ADT_Matrix.h"
 #include "window.h"
 #include "Minimax.h"
+#include <list>
 
 #define EMPTY_SQUARE 0
 #define WHITE_CHECKER 0x1
@@ -36,9 +37,6 @@
 #define SCORE_WHITE_COVER 1
 #define SCORE_BLACK_COVER -1
 
-#define WHITE_TURN 0
-#define BLACK_TURN 1
-
 #define WHITE_CANNOT_MOVE 0x1
 #define BLACK_CANNOT_MOVE 0x2
 
@@ -54,7 +52,6 @@ namespace lab309 {
 	class Direction {
 		private:
 			int directionMap;
-			int offset;
 			
 		public:
 			Direction (int directionMap);
@@ -66,23 +63,19 @@ namespace lab309 {
 			bool inboundsFor (int checker) const;	//checks if a movement in this direction is within bounds of a checker
 			inline int getMap (void) const { return this->directionMap; }
 			
-			inline operator int (void) const { return this->offset; }
-	}
+			int operator+ (int checker) const;
+	};
 	
 	class Board : public State {
 		
 		private:
-			static const Direction moveDirections[POSSIBLE_DIRECTIONS] = { FORWARDS|LEFT, FORWARDS|RIGHT, BACKWARDS|LEFT, BACKWARDS|RIGHT };
-				
 			int checkers[BOARD_COLUMS*BOARD_LINES/2];
-			int toggledChecker;
+			mutable int toggledChecker;
 			unsigned int turn;
 			
-			int& getCheckerAt (const Vector &pixel);
-			
-			//getters
-			
 		public:
+			static const Direction moveDirections[POSSIBLE_DIRECTIONS];
+		
 			Board (void);
 			Board (const Board &board);
 			
@@ -91,13 +84,15 @@ namespace lab309 {
 			bool hasWhiteCheckerAt (int i) const;
 			bool hasBlackCheckerAt (int i) const;
 			bool hasPromotedCheckerAt (int i) const;
+			bool isWhiteTurn (void) const;
+			bool isBlackTurn (void) const;
+			int getToggled (void) const;
 			
 			bool checkerCanCapture (const Direction &direction) const;
 			bool checkerCanMove (const Direction &direction) const;	//does not check for capture rules
-			int getTurn (void) const;
 			
 			//methods
-			void toggleCheckerAt (const Vector<int> &pixel);
+			int toggleCheckerAt (int i) const;
 			bool moveChecker (const Direction &direction);
 			
 			float evaluate (void) const;

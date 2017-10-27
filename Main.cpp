@@ -1,11 +1,16 @@
 #include "sprite.h"
-#include "board.h"
+#include "Board.h"
 #include "window.h"
+#include <iostream>
 
 #define WINDOW_WIDTH 800
 #define WINDOW_HEIGHT 640
 
-bool handleInput (void) {
+using namespace lab309;
+
+int highlightedSquareIndex[POSSIBLE_DIRECTIONS] = { -1, -1, -1, -1 };
+
+bool handleInput (const Window *window, Board &board) {
 	SDL_Event event;
 	
 	while (SDL_PollEvent(&event) != 0) {
@@ -18,7 +23,34 @@ bool handleInput (void) {
 			}
 		} else if (event.type == SDL_MOUSEBUTTONUP) {
 			if (event.button.button == SDL_BUTTON_LEFT) {
+				int click = mapGridToChecker(mapPixelToGrid(*window, {event.button.x, event.button.y}));
+				if (board.hasWhiteCheckerAt(click) && board.isWhiteTurn() || board.hasBlackCheckerAt(click) && board.isBlackTurn()) {
+					board.toggleCheckerAt(click);
+					//std::cout << mapPixelToGrid(*window, {event.button.x, event.button.y})[COORDINATE_X] << ", " << mapPixelToGrid(*window, {event.button.x, event.button.y})[COORDINATE_Y] << std::endl;	//debug
+				} else {
+					//determine click direction
+					int d = 0;
+					while (d < POSSIBLE_DIRECTIONS) {
+						if (click == board.getToggled()+Board::moveDirections[d] || click == board.getToggled()+2*Board::moveDirections[d] && board.checkerCanCapture(Board::moveDirections[d])) {
+							break;
+						}
+						d++;
+					}
+					if (d != POSSIBLE_DIRECTIONS) {
+						board.moveChecker(Board::moveDirections[d]);
+					}	
+				}
+			}
 			
+			//highlight possible movements
+			for (int i = 0; i < POSSIBLE_DIRECTIONS; i++) {
+				if (board.checkerCanMove(Board::moveDirections[i])) {
+					highlightedSquareIndex[i] = board.getToggled()+Board::moveDirections[i];
+				} else if (board.checkerCanCapture(Board::moveDirections[i])) {
+					highlightedSquareIndex[i] = board.getToggled()+Direction(Board::moveDirections[i].getMap()|OVER);
+				} else {
+					highlightedSquareIndex[i] = -1;
+				}
 			}
 		}
 	}
@@ -33,10 +65,12 @@ int main (int argc, char **args) {
 	SDL_Surface	*texture_whiteSquare,
 				*texture_blackSquare,
 				*texture_whiteChecker,
-				*texture_blackChecker;
+				*texture_blackChecker,
+				*texture_highlightedSquare;
 	Sprite	*emptySquare[2],
 			*whiteChecker,
-			*blackChecker;
+			*blackChecker,
+			*highlightedSquare;
 	Board board;
 	bool running;
 
@@ -51,11 +85,13 @@ int main (int argc, char **args) {
 	texture_blackSquare = window->loadTexture("img/black_square.png");
 	texture_whiteChecker = window->loadTexture("img/white_checker.png");
 	texture_blackChecker = window->loadTexture("img/black_checker.png");
+	texture_highlightedSquare = window->loadTexture("img/highlighted_square.png");
 	
 	emptySquare[0] = new Sprite(texture_whiteSquare, texture_whiteSquare->w, texture_whiteSquare->h, window->getWidth()/BOARD_COLUMS, window->getHeight()/BOARD_LINES);
 	emptySquare[1] = new Sprite(texture_blackSquare, texture_blackSquare->w, texture_blackSquare->h, window->getWidth()/BOARD_COLUMS, window->getHeight()/BOARD_LINES);
 	whiteChecker = new Sprite(texture_whiteChecker, texture_whiteChecker->w, texture_whiteChecker->h, window->getWidth()/BOARD_COLUMS, window->getHeight()/BOARD_LINES);
 	blackChecker = new Sprite(texture_blackChecker, texture_blackChecker->w, texture_blackChecker->h, window->getWidth()/BOARD_COLUMS, window->getHeight()/BOARD_LINES);
+	highlightedSquare = new Sprite(texture_highlightedSquare, texture_highlightedSquare->w, texture_highlightedSquare->h, window->getWidth()/BOARD_COLUMS, window->getHeight()/BOARD_LINES);
 	
 	running = true;
 	
@@ -65,26 +101,38 @@ int main (int argc, char **args) {
 		//draw board
 		for (int i = 0; i < BOARD_LINES; i++) {
 			for (int j = 0; j < BOARD_COLUMS; j++) {
-				emptySquare[drawSquare]->setPos(mapGridToPixel({i, j});
+				emptySquare[drawSquare]->setPos((Vector<float>)mapGridToPixel(*window, {i, j}));
+				//std::cout << emptySquare[drawSquare]->getXPos() << ", " << emptySquare[drawSquare]->getYPos() << ", " << drawSquare << std::endl;	//debug
 				emptySquare[drawSquare]->blitTo(*window);
 				drawSquare = (drawSquare+1)%2;
 			}
+			drawSquare = (drawSquare+1)%2;
 		}
 		
 		//draw checkers
 		for (int i = 0; i < BOARD_LINES*BOARD_COLUMS/2; i++) {
+			//std::cout << mapCheckerToGrid(i)[COORDINATE_X] << ", " << mapCheckerToGrid(i)[COORDINATE_Y] << std::endl;	//debug
 			if (board.hasWhiteCheckerAt(i)) {
-				whiteChecker->setPos(mapGridToPixel(mapCheckerToGrid(i)));
+				whiteChecker->setPos((Vector<float>)mapGridToPixel(*window, mapCheckerToGrid(i)));
 				whiteChecker->blitTo(*window);
+				//std::cout << whiteChecker->getXPos() << ", " << whiteChecker->getYPos() << std::endl;	//debug
 			} else if (board.hasBlackCheckerAt(i)) {
-				blackChecker->setPos(mapGridToPixel(mapCheckerToGrid(i)));
+				blackChecker->setPos((Vector<float>)mapGridToPixel(*window, mapCheckerToGrid(i)));
 				blackChecker->blitTo(*window);
+			}
+		}
+		
+		//draw highlights
+		for (int i = 0; i < POSSIBLE_DIRECTIONS; i++) {
+			if (highlightedSquareIndex[i] != -1) {
+				highlightedSquare->setPos((Vector<float>)mapGridToPixel(*window, mapCheckerToGrid(highlightedSquareIndex[i])));
+				highlightedSquare->blitTo(*window);
 			}
 		}
 		
 		window->update();
 		
-		running = handleInput();
+		running = handleInput(window, board);
 	}
 	
 
@@ -96,12 +144,14 @@ EXIT:
 	SDL_FreeSurface(texture_blackSquare);
 	SDL_FreeSurface(texture_whiteChecker);
 	SDL_FreeSurface(texture_blackChecker);
+	SDL_FreeSurface(texture_highlightedSquare);
 	
 	//free sprites
 	delete(emptySquare[0]);
 	delete(emptySquare[1]);
 	delete(whiteChecker);
 	delete(blackChecker);
+	delete(highlightedSquare);
 		
 	SDL_Quit();
 	return 0;
