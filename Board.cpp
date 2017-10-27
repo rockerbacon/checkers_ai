@@ -11,8 +11,8 @@ Vector<int> lab309::mapPixelToGrid (const Window &window, const Vector<int> &pix
 	return v;
 }
 
-//Calculation for a complete matrix would be i*lines + j;
-//In this case there's half as many colums per line, so i*(lines/2)
+//Calculation for a complete matrix would be i*colums + j;
+//In this case there's half as many colums per line, so i*(colums/2)
 //The colums are offseted in odd lines: R:j -> j*2; so j/2
 //The colums are offseted in even lines: R:j -> j*2+1; so (j-1)/2
 //j^0x1 to flip the least significant bit which determines if a number is odd or even then &0x1 which will result in 0 when j is odd and 1 otherwise
@@ -91,7 +91,17 @@ lab309::Board::Board (void) {
 		i++;
 	}
 	
-	this->toggledChecker = NULL;
+	this->toggledChecker = -1;
+	
+	this->turn = 0;
+}
+
+lab309::Board::Board (const Board &board) {
+	for (int i = 0; i < BOARD_LINES*BOARD_COLUMS/2; i++) {
+		this->checkers[i] = board.checkers[i];
+	}
+	this->toggledChecker = board.toggledChecker;
+	this->turn = board.turn;
 }
 
 /*GETTERS*/
@@ -158,4 +168,77 @@ bool lab309::Board::moveChecker (const Direction &direction) {
 	}
 	
 	return valid;
+}
+
+float lab309::Board::evaluate (void) const {
+	float score = 0;
+	Direction	forwardsLeft = Direction(LEFT|FORWARDS),
+				forwardsRight = Direction(RIGHT|FORWARDS),
+				backwardsLeft = Direction(LEFT|BACKWARDS),
+				backwardsRight = Direction(RIGHT|BACKWARDS);			
+	
+	for (int i = 0; i < BOARD_COLUMS*BOARD_LINES/2; i++) {
+		if (this->hasWhiteCheckerAt(i)) {
+			score += SCORE_WHITE_CHECKER * (this->hasPromotedCheckerAt(i) ? SCORE_PROMOTED_MULTIPLIER : 1);
+			score += this->hasWhiteCheckerAt(i+forwardsLeft) ? SCORE_WHITE_COVER : 0;
+			score += this->hasWhiteCheckerAt(i+forwardsRight) ? SCORE_WHITE_COVER : 0;
+		} else if (this->hasBlackCheckerAt(i)) {
+			score += SCORE_BLACK_CHECKER * (this->hasPromotedCheckerAt(i) ? SCORE_PROMOTED_MULTIPLIER : 1);
+			score += this->hasBlackCheckerAt(i+backwardsLeft) ? SCORE_BLACK_COVER : 0;
+			score += this->hasBlackCheckerAt(i+backwardsRight) ? SCORE_BLACK_COVER : 0;
+		}
+	}
+	
+	return score;
+}
+
+std::list<State*> nextStates (void) const {
+	Board *next;
+	std::list<State*> states;
+	for (int i = 0; i < BOARD_LINES*BOARD_COLUMS/2; i++) {
+		if (!this->hasEmptyCheckerAt(i)) {
+			this->toggledChecker = i;
+			for (int j = 0; j < POSSIBLE_DIRECTIONS; j++) {
+				if (this->checkerCanMove(Board::moveDirections[j]) || this->checkerCanCapture(Board::moveDirections[j])) {
+					next = new Board(*this);
+					next->moveChecker(Board::moveDirections[j]);
+					states.push_back(next);
+				}
+			}
+		}	
+	}
+	
+	return states;
+}
+
+//game is over if there are no movements left for one of the players
+bool lab309::Board::isFinal (void) const {
+	int i, j;
+	bool whiteHasMove = false, blackHasMove = false;
+	
+	for (i = 0; i < BOARD_LINES*BOARD_COLUMS/2; i++) {
+		if (this->hasWhiteCheckerAt(i)) {
+			this->toggledChecker = i;
+			for (j = 0; j < POSSIBLE_DIRECTIONS; j++) {
+				if (this->checkerCanMove(Board::moveDirections[j]) || this->checkerCanCapture(Board::moveDirections[j])) {
+					whiteHasMove = true;
+					break;
+				}
+			}
+		}
+	}
+	
+	for (i = 0; i < BOARD_LINES*BOARD_COLUMS/2; i++) {
+		if (this->hasBlackCheckerAt(i)) {
+			this->toggledChecker = i;
+			for (j = 0; j < POSSIBLE_DIRECTIONS; j++) {
+				if (this->checkerCanMove(Board::moveDirections[j]) || this->checkerCanCapture(Board::moveDirections[j])) {
+					blackHasMove = true;
+					break;
+				}
+			}
+		}
+	}
+	
+	return whiteHasMove && blackHasMove;
 }
