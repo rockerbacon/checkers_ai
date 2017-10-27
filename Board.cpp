@@ -165,7 +165,7 @@ bool lab309::Board::checkerCanMove (const Direction &direction) const {
 int lab309::Board::toggleCheckerAt (int i) const {
 	if (this->hasWhiteCheckerAt(i) && this->isWhiteTurn() || this->hasBlackCheckerAt(i) && this->isBlackTurn()) {
 		this->toggledChecker = i;
-		std::cout << "Checker at " << i << " selected" << std::endl;	//debug
+		//std::cout << "Checker at " << i << " selected" << std::endl;	//debug
 	} else {
 		this->toggledChecker = -1;
 	}
@@ -175,10 +175,12 @@ int lab309::Board::toggleCheckerAt (int i) const {
 
 bool lab309::Board::moveChecker (const Direction &direction) {
 	bool valid = false;
+	int moved;
 	
 	if (this->checkerCanMove(direction)) {
 		this->checkers[direction+this->toggledChecker] = this->checkers[this->toggledChecker];	//moves checker
 		this->checkers[this->toggledChecker] = EMPTY_SQUARE;	//removes checker
+		moved = direction+this->toggledChecker;
 		this->toggledChecker = -1;
 		this->turn++;
 		valid = true;
@@ -187,10 +189,13 @@ bool lab309::Board::moveChecker (const Direction &direction) {
 		this->checkers[direction*2+this->toggledChecker] = this->checkers[this->toggledChecker];	//moves checker
 		this->checkers[direction+this->toggledChecker] = EMPTY_SQUARE;	//removes opponent checker
 		this->checkers[this->toggledChecker] = EMPTY_SQUARE;	//removes checker
+		moved = direction*2+this->toggledChecker;
+		
+		//chain captures
+		this->toggledChecker = direction*2+this->toggledChecker;
 		for (int j = 0; j < POSSIBLE_DIRECTIONS; j++) {
 			if (this->checkerCanCapture(Board::moveDirections[j])) {
 				switchTurn = false;
-				this->toggledChecker = direction*2+this->toggledChecker;	//keeps track of last moved checker
 				break;
 			}
 		}
@@ -200,6 +205,20 @@ bool lab309::Board::moveChecker (const Direction &direction) {
 		}
 		valid = true;
 	}
+	
+	//promote checker
+	if (this->hasWhiteCheckerAt(moved) && moved >= BOARD_COLUMS/2*BOARD_LINES-BOARD_COLUMS/2 || this->hasBlackCheckerAt(moved) && moved < BOARD_COLUMS/2) {
+		this->checkers[moved] |= PROMOTED_CHECKER;
+	}
+	
+	//debug
+	/*
+	if (this->isWhiteTurn()) {
+		std::cout << "White plays " << this->turn << std::endl;
+	} else {
+		std::cout << "Black plays " << this->turn << std::endl;
+	}
+	*/
 	
 	return valid;
 }

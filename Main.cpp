@@ -40,6 +40,7 @@ bool handleInput (const Window *window, Board &board) {
 						board.moveChecker(Board::moveDirections[d]);
 					}	
 				}
+				
 			}
 			
 			//highlight possible movements
@@ -47,10 +48,10 @@ bool handleInput (const Window *window, Board &board) {
 				//std::cout << Board::moveDirections[i]+board.getToggled() << std::endl;	//debug
 				if (board.checkerCanMove(Board::moveDirections[i])) {
 					highlightedSquareIndex[i] = Board::moveDirections[i]+board.getToggled();
-					std::cout << "Can move at direction " << i << std::endl;	//debug
+					//std::cout << "Can move at direction " << i << std::endl;	//debug
 				} else if (board.checkerCanCapture(Board::moveDirections[i])) {
 					highlightedSquareIndex[i] = Board::moveDirections[i]*2+board.getToggled();
-					std::cout << "Can capture at direction " << i << std::endl;	//debug
+					//std::cout << "Can capture at direction " << i << std::endl;	//debug
 				} else {
 					highlightedSquareIndex[i] = -1;
 				}
@@ -70,11 +71,15 @@ int main (int argc, char **args) {
 				*texture_blackSquare,
 				*texture_whiteChecker,
 				*texture_blackChecker,
-				*texture_highlightedSquare;
+				*texture_highlightedSquare,
+				*texture_promotedWhiteChecker,
+				*texture_promotedBlackChecker;
 	Sprite	*emptySquare[2],
 			*whiteChecker,
 			*blackChecker,
-			*highlightedSquare;
+			*highlightedSquare,
+			*promotedWhiteChecker,
+			*promotedBlackChecker;
 	Board board;
 	bool running;
 
@@ -90,12 +95,16 @@ int main (int argc, char **args) {
 	texture_whiteChecker = window->loadTexture("img/white_checker.png");
 	texture_blackChecker = window->loadTexture("img/black_checker.png");
 	texture_highlightedSquare = window->loadTexture("img/highlighted_square.png");
+	texture_promotedWhiteChecker = window->loadTexture("img/promotedWhite_checker.png");
+	texture_promotedBlackChecker = window->loadTexture("img/promotedBlack_checker.png");
 	
 	emptySquare[0] = new Sprite(texture_whiteSquare, texture_whiteSquare->w, texture_whiteSquare->h, window->getWidth()/BOARD_COLUMS, window->getHeight()/BOARD_LINES);
 	emptySquare[1] = new Sprite(texture_blackSquare, texture_blackSquare->w, texture_blackSquare->h, window->getWidth()/BOARD_COLUMS, window->getHeight()/BOARD_LINES);
 	whiteChecker = new Sprite(texture_whiteChecker, texture_whiteChecker->w, texture_whiteChecker->h, window->getWidth()/BOARD_COLUMS, window->getHeight()/BOARD_LINES);
 	blackChecker = new Sprite(texture_blackChecker, texture_blackChecker->w, texture_blackChecker->h, window->getWidth()/BOARD_COLUMS, window->getHeight()/BOARD_LINES);
 	highlightedSquare = new Sprite(texture_highlightedSquare, texture_highlightedSquare->w, texture_highlightedSquare->h, window->getWidth()/BOARD_COLUMS, window->getHeight()/BOARD_LINES);
+	promotedWhiteChecker = new Sprite(texture_promotedWhiteChecker, texture_promotedWhiteChecker->w, texture_promotedWhiteChecker->h, window->getWidth()/BOARD_COLUMS, window->getHeight()/BOARD_LINES);
+	promotedBlackChecker = new Sprite(texture_promotedBlackChecker, texture_promotedBlackChecker->w, texture_promotedBlackChecker->h, window->getWidth()/BOARD_COLUMS, window->getHeight()/BOARD_LINES);
 	
 	running = true;
 	
@@ -117,12 +126,22 @@ int main (int argc, char **args) {
 		for (int i = 0; i < BOARD_LINES*BOARD_COLUMS/2; i++) {
 			//std::cout << mapCheckerToGrid(i)[COORDINATE_X] << ", " << mapCheckerToGrid(i)[COORDINATE_Y] << std::endl;	//debug
 			if (board.hasWhiteCheckerAt(i)) {
-				whiteChecker->setPos((Vector<float>)mapGridToPixel(*window, mapCheckerToGrid(i)));
-				whiteChecker->blitTo(*window);
+				if (board.hasPromotedCheckerAt(i)) {
+					promotedWhiteChecker->setPos((Vector<float>)mapGridToPixel(*window, mapCheckerToGrid(i)));
+					promotedWhiteChecker->blitTo(*window);
+				} else {
+					whiteChecker->setPos((Vector<float>)mapGridToPixel(*window, mapCheckerToGrid(i)));
+					whiteChecker->blitTo(*window);				
+				}
 				//std::cout << whiteChecker->getXPos() << ", " << whiteChecker->getYPos() << std::endl;	//debug
 			} else if (board.hasBlackCheckerAt(i)) {
-				blackChecker->setPos((Vector<float>)mapGridToPixel(*window, mapCheckerToGrid(i)));
-				blackChecker->blitTo(*window);
+				if (board.hasPromotedCheckerAt(i)) {
+					promotedBlackChecker->setPos((Vector<float>)mapGridToPixel(*window, mapCheckerToGrid(i)));
+					promotedBlackChecker->blitTo(*window);
+				} else {
+					blackChecker->setPos((Vector<float>)mapGridToPixel(*window, mapCheckerToGrid(i)));
+					blackChecker->blitTo(*window);				
+				}
 			}
 		}
 		
