@@ -245,16 +245,16 @@ std::list<State*> nextStates (void) const {
 }
 
 //game is over if there are no movements left for one of the players
-bool lab309::Board::isFinal (void) const {
+int lab309::Board::isFinal (void) const {
 	int i, j;
-	bool whiteHasMove = false, blackHasMove = false;
+	int moves = WHITE_CANNOT_MOVE|BLACK_CANNOT_MOVE;
 	
 	for (i = 0; i < BOARD_LINES*BOARD_COLUMS/2; i++) {
 		if (this->hasWhiteCheckerAt(i)) {
 			this->toggledChecker = i;
 			for (j = 0; j < POSSIBLE_DIRECTIONS; j++) {
 				if (this->checkerCanMove(Board::moveDirections[j]) || this->checkerCanCapture(Board::moveDirections[j])) {
-					whiteHasMove = true;
+					moves &= ~WHITE_CANNOT_MOVE;
 					break;
 				}
 			}
@@ -266,12 +266,12 @@ bool lab309::Board::isFinal (void) const {
 			this->toggledChecker = i;
 			for (j = 0; j < POSSIBLE_DIRECTIONS; j++) {
 				if (this->checkerCanMove(Board::moveDirections[j]) || this->checkerCanCapture(Board::moveDirections[j])) {
-					blackHasMove = true;
+					moves &= ~BLACK_CANNOT_MOVE;
 					break;
 				}
 			}
 		}
 	}
 	
-	return whiteHasMove && blackHasMove;
+	return moves;
 }

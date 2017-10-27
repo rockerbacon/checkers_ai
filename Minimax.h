@@ -16,8 +16,8 @@ namespace lab309 {
 			//returns all the next valid states from the current state. The states MUST BE ALLOCATED USING THE NEW() OPERATOR
 			virtual std::list<State*> nextStates (void) const = 0;
 			
-			//returns true if this state has no valid next states
-			virtual bool isFinal (void) const = 0;
+			//returns 0 still has valid next states
+			virtual int isFinal (void) const = 0;
 	};
 	
 	//returns an ordered list of the states in the path of a Minimax search result given the current state and a maximum depth for the search

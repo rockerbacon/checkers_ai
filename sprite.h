@@ -18,7 +18,8 @@ namespace lab309 {
 			
 		public:
 			/*CONSTRUCTORS*/
-			Sprite (SDL_Surface *texture, int rectWidth, int rectHeight, float size);
+			Sprite (SDL_Surface *texture, int rectWidth, int rectHeight, int displayWidth, int displayHeight);
+			inline Sprite (SDL_Surface *texture, int rectWidth, int rectHeight, float scale) : Sprite (texture, rectWidth, rectHeight, scale*texture->w, scale*texture->h) {}
 			
 			/*GETTERS*/
 			Vector<float> getSpritePos (void) const;

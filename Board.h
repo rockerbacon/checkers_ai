@@ -39,6 +39,9 @@
 #define WHITE_TURN 0
 #define BLACK_TURN 1
 
+#define WHITE_CANNOT_MOVE 0x1
+#define BLACK_CANNOT_MOVE 0x2
+
 namespace lab309 {
 	
 	Vector<int> mapPixelToGrid (const Window &window, const Vector<int> &pos);	//maps a pixel to a board coordinate in a given window. Board contains 8 colums and 8 lines
@@ -78,16 +81,17 @@ namespace lab309 {
 			int& getCheckerAt (const Vector &pixel);
 			
 			//getters
-			bool hasEmptySquareAt (int i) const;
-			bool hasWhiteCheckerAt (int i) const;
-			bool hasBlackCheckerAt (int i) const;
-			bool hasPromotedCheckerAt (int i) const;
 			
 		public:
 			Board (void);
 			Board (const Board &board);
 			
 			//getters
+			bool hasEmptySquareAt (int i) const;
+			bool hasWhiteCheckerAt (int i) const;
+			bool hasBlackCheckerAt (int i) const;
+			bool hasPromotedCheckerAt (int i) const;
+			
 			bool checkerCanCapture (const Direction &direction) const;
 			bool checkerCanMove (const Direction &direction) const;	//does not check for capture rules
 			int getTurn (void) const;
@@ -98,7 +102,7 @@ namespace lab309 {
 			
 			float evaluate (void) const;
 			std::list<State*> nextStates (void) const;
-			bool isFinal (void) const;
+			int isFinal (void) const;
 			
 	};
 };

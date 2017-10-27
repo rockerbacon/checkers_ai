@@ -2,10 +2,10 @@
 #include <iostream>
 
 /*CONSTRUCTORS*/
-lab309::Sprite::Sprite (SDL_Surface *texture, int rectWidth, int rectHeight, float size) {
+lab309::Sprite::Sprite (SDL_Surface *texture, int rectWidth, int rectHeight, int displayWidth, int displayHeight) {
 	this->texture = texture;
 	this->rect = {0, 0, rectWidth, rectHeight};
-	this->displayRect = {0, 0, (int)(rectWidth*size), (int)(rectHeight*size)};
+	this->displayRect = {0, 0, displayWidth, displayHeight};
 	this->pos = {0, 0};
 }
 

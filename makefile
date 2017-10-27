@@ -1,5 +1,5 @@
 CXX=g++ -std=c++11
-OBJS=sprite.o window.o main.o Board.o Minimax.o
+OBJS=sprite.o window.o Main.o Board.o Minimax.o
 LFLAGS=-lSDL2 -lSDL2_image
 DEPS=Lab309_ADT_Container.h Lab309_ADT_DoublyLinkedList.h Lab309_ADT_Matrix.h vertex.h
 
