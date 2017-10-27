@@ -17,7 +17,27 @@ Vector<int> lab309::mapPixelToGrid (const Window &window, const Vector<int> &pix
 //The colums are offseted in even lines: R:j -> j*2+1; so (j-1)/2
 //j^0x1 to flip the least significant bit which determines if a number is odd or even then &0x1 which will result in 0 when j is odd and 1 otherwise
 int lab309::mapGridToChecker (const Vector<int> &pos) {
-	return pos[COORDINATE_Y]*(BOARD_LINES/2) + (pos[COORDINATE_X] - ((pos[COORDINATE_X]^0x1)&0x1)) / 2;
+	return pos[COORDINATE_Y]*(BOARD_COLUMS/2) + (pos[COORDINATE_X] - ((pos[COORDINATE_Y]^0x1)&0x1)) / 2;
+}
+
+Vector<int> mapGridToPixel (const Window &window, const Vector<int> &pos) {
+	Vector<int> v(2);
+	int gridWidth = window.getWidth()/BOARD_COLUMS;
+	int gridHeight = window.getHeight()/BOARD_COLUMS;
+	
+	v[COORDINATE_X] = pos[COORDINATE_X]*gridWidth;
+	v[COORDINATE_Y] = ((pos[COORDINATE_Y]+BOARD_LINES)%BOARD_LINES))*gridHeight;
+	
+	return v;
+}
+
+Vector<int> mapCheckerToGrid (int i) {
+	Vector<int> v(2);
+	
+	v[COORDINATE_Y] = i/(BOARD_COLUMS/2);
+	v[COORDINATE_X] = (i%(BOARD_COLUMS/2) + ((v[COORDINATE_Y]^0x1)&0x1)) * 2;
+	
+	return v;
 }
 
 /*DIRECTION*/
@@ -146,6 +166,10 @@ bool lab309::Board::checkerCanMove (const Direction &direction) const {
 	return result;
 }
 
+unsigned int lab309::Board::getTurn (void) const {
+	return this->turn&0x1;
+}
+
 /*METHODS*/
 void lab309::Board::toggleCheckerAt (const Vector<int> &pixel) {
 	this->toggledChecker = mapGridToChecker(mapPixelToGrid(pixel));
@@ -158,12 +182,21 @@ bool lab309::Board::moveChecker (const Direction &direction) {
 		this->checkers[this->toggledChecker+direction] = this->checkers[this->toggledChecker];	//moves checker
 		this->checkers[this->toggledChecker] = EMPTY_SQUARE;	//removes checker
 		this->toggledChecker = this->toggledChecker+direction;	//keeps track of last moved checker
+		this->turn++;
 		valid = true;
 	} else if (this->checkerCanCapture(direction)) {
+		bool switchTurn = true;
 		this->checkers[this->toggledChecker+2*direction] = this->checkers[this->toggledChecker];	//moves checker
 		this->checkers[this->toggledChecker+direction] = EMPTY_SQUARE;	//removes opponent checker
 		this->checkers[this->toggledChecker] = EMPTY_SQUARE;	//removes checker
 		this->toggledChecker = this->toggledChecker+2*direction;	//keeps track of last moved checker
+		for (int j = 0; j < POSSIBLE_DIRECTIONS; j++) {
+			if (this->checkerCanCapture(Board::moveDirections[j])) {
+				switchTurn = false;
+				break;
+			}
+		}
+		if (switchTurn) { this->turn++; }
 		valid = true;
 	}
 	

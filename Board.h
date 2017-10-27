@@ -36,10 +36,17 @@
 #define SCORE_WHITE_COVER 1
 #define SCORE_BLACK_COVER -1
 
+#define WHITE_TURN 0
+#define BLACK_TURN 1
+
 namespace lab309 {
 	
 	Vector<int> mapPixelToGrid (const Window &window, const Vector<int> &pos);	//maps a pixel to a board coordinate in a given window. Board contains 8 colums and 8 lines
 	int mapGridToChecker (const Vector<int> &pos);	//maps a board position to a checker position in the attribute checkers[] within the Board class
+	
+	//inverse of the functions above
+	Vector<int> mapGridToPixel (const Window &window, const Vector<int> &pos);
+	Vector<int> mapCheckerToGrid (int i);
 	
 	class Direction {
 		private:
@@ -83,6 +90,7 @@ namespace lab309 {
 			//getters
 			bool checkerCanCapture (const Direction &direction) const;
 			bool checkerCanMove (const Direction &direction) const;	//does not check for capture rules
+			int getTurn (void) const;
 			
 			//methods
 			void toggleCheckerAt (const Vector<int> &pixel);
