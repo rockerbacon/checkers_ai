@@ -138,10 +138,60 @@ int lab309::Board::getToggled (void) const {
 	return this->toggledChecker;
 }
 
+bool lab309::Board::whiteHasCapture (void) const {
+	int previouslyToggled = this->toggledChecker;
+	
+	for (int i = 0; i < BOARD_COLUMS/2*BOARD_LINES; i++) {
+		if (this->hasWhiteCheckerAt(i)) {
+			this->toggledChecker = i;
+			for (int j = 0; j < POSSIBLE_DIRECTIONS; j++) {
+				if (this->checkerCanCapture(Board::moveDirections[j])) {
+					this->toggledChecker = previouslyToggled;
+					return true;
+				}
+			}
+		}	
+	}
+	
+	this->toggledChecker = previouslyToggled;
+	return false;
+}
+
+bool lab309::Board::blackHasCapture (void) const {
+	int previouslyToggled = this->toggledChecker;
+	
+	for (int i = 0; i < BOARD_COLUMS/2*BOARD_LINES; i++) {
+		if (this->hasBlackCheckerAt(i)) {
+			this->toggledChecker = i;
+			for (int j = 0; j < POSSIBLE_DIRECTIONS; j++) {
+				if (this->checkerCanCapture(Board::moveDirections[j])) {
+					this->toggledChecker = previouslyToggled;
+					return true;
+				}
+			}
+		}	
+	}
+	
+	this->toggledChecker = previouslyToggled;
+	return false;
+}
+
 bool lab309::Board::checkerCanCapture (const Direction &direction) const {
+	Direction over = direction*2;
+	bool result;
+	
+	result = over.inboundsFor(this->toggledChecker) && this->hasEmptySquareAt(over+this->toggledChecker);	//can only capture if the square in that direction is whitin bounds and empty
+	if (direction.isForwards()) {
+		//can only move forwards if checker is a white or a promoted black
+		result = result && (this->hasWhiteCheckerAt(this->toggledChecker) || this->hasPromotedCheckerAt(this->toggledChecker));
+	} else {
+		//can only move backwards if checker is a black or a promoted white
+		result = result && (this->hasBlackCheckerAt(this->toggledChecker) || this->hasPromotedCheckerAt(this->toggledChecker));
+	}
+	
 	//checker can capture if the movement is valid and it's a white with a black in its direction or a black with a white in its direction
-	return this->checkerCanMove(direction*2) && (	this->hasWhiteCheckerAt(this->toggledChecker) && this->hasBlackCheckerAt(direction+this->toggledChecker) ||
-													this->hasBlackCheckerAt(this->toggledChecker) && this->hasWhiteCheckerAt(direction+this->toggledChecker) );
+	return result && (	this->hasWhiteCheckerAt(this->toggledChecker) && this->hasBlackCheckerAt(direction+this->toggledChecker) ||
+						this->hasBlackCheckerAt(this->toggledChecker) && this->hasWhiteCheckerAt(direction+this->toggledChecker) );
 	
 }
 
@@ -149,6 +199,8 @@ bool lab309::Board::checkerCanMove (const Direction &direction) const {
 	bool result;
 	
 	result = direction.inboundsFor(this->toggledChecker) && this->hasEmptySquareAt(direction+this->toggledChecker);	//can only move if the square in that direction is whitin bounds and empty
+	
+	result = result && (this->hasWhiteCheckerAt(this->toggledChecker) && !this->whiteHasCapture() || this->hasBlackCheckerAt(this->toggledChecker) && !this->blackHasCapture());	//can only move if checker has no available capture
 	
 	if (direction.isForwards()) {
 		//can only move forwards if checker is a white or a promoted black

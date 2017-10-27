@@ -85,6 +85,8 @@ namespace lab309 {
 			bool isWhiteTurn (void) const;
 			bool isBlackTurn (void) const;
 			int getToggled (void) const;
+			bool whiteHasCapture (void) const;
+			bool blackHasCapture (void) const;
 			
 			bool checkerCanCapture (const Direction &direction) const;
 			bool checkerCanMove (const Direction &direction) const;	//does not check for capture rules
