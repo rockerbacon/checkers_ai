@@ -80,6 +80,7 @@ class Human : public Player {
 class CPU : public Player {
 	private:
 		unsigned int maxDepth;
+		mutable std::list<const State*> actions;
 		
 	public:
 		CPU (unsigned int difficulty) {
@@ -87,18 +88,37 @@ class CPU : public Player {
 		}
 		
 		void play (void) const {
-			std::cout << "The computer is thinking..." << std::endl;	//debug
-			std::list<const State*> stateList;
+			bool rethink;
 			
-			if (board->isWhiteTurn()) {
-				stateList = minimax(*board, this->maxDepth);
-			} else {
-				stateList = maximin(*board, this->maxDepth);
+			rethink = false;
+			if (this->actions.size() == 0) {
+				rethink = true;
+			} else if (*(Board*)this->actions.front() != *board) {
+				rethink = true;
 			}
-			//delete(board);
+			
+			if (rethink) {
+				std::cout << "The computer is thinking..." << std::endl;	//debug
+				//clear memory of states
+				//std::cout << "cleaning memory" << std::endl;	//debug
+				for (const State *s : this->actions) {
+					//std::cout << ((Board*)s)->toString() << std::endl;	//debug
+					delete(s);
+				}
+				//std::cout << "memory cleaned" << std::endl;	//debug
+				
+				if (board->isWhiteTurn()) {
+					this->actions = minimax(*board, this->maxDepth);
+				} else {
+					this->actions = maximin(*board, this->maxDepth);
+				}
+			}	
+			
+			
+			delete(board);
 			//std::cout << stateList.size() << std::endl;	//debug
-			board = (Board*)stateList.front();
-			stateList.pop_front();
+			board = (Board*)this->actions.front();
+			this->actions.pop_front();
 			
 			//debug
 			if (board->isWhiteTurn()) {
@@ -108,13 +128,6 @@ class CPU : public Player {
 			}
 			//std::cout << board->evaluate() << std::endl;	//debug
 			
-			//clear memory of states
-			//std::cout << "cleaning memory" << std::endl;	//debug
-			for (const State *s : stateList) {
-				//std::cout << ((Board*)s)->toString() << std::endl;	//debug
-				delete(s);
-			}
-			//std::cout << "memory cleaned" << std::endl;	//debug
 			SDL_Delay(CPU_DELAY);
 		}
 };

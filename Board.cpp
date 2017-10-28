@@ -326,6 +326,16 @@ bool lab309::Board::isFinal (void) const {
 	return true;
 }
 
+bool lab309::Board::operator== (const Board &board) const {
+	for (int i = 0; i < BOARD_COLUMS/2*BOARD_LINES; i++) {
+		if (this->checkers[i] != board.checkers[i]) {
+			return false;
+		}	
+	}
+	
+	return true;
+}
+
 std::string lab309::Board::toString (void) const {
 	std::ostringstream stream;
 	

@@ -101,6 +101,9 @@ namespace lab309 {
 			std::list<State*> nextStates (void) const;
 			bool isFinal (void) const;
 			
+			bool operator== (const Board &b) const;
+			inline bool operator!= (const Board &b) const { return !(*this == b); }
+			
 			std::string toString (void) const;
 			
 	};
