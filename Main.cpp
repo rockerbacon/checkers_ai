@@ -88,7 +88,7 @@ class CPU : public Player {
 		void play (void) const {
 			std::list<const State*> stateList = minimax(*board, this->maxDepth);
 			//delete(board);
-			std::cout << stateList.size() << std::endl;	//debug
+			//std::cout << stateList.size() << std::endl;	//debug
 			board = (Board*)stateList.front();
 			stateList.pop_front();
 			
