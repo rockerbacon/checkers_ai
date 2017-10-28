@@ -1,13 +1,14 @@
 CXX=g++ -std=c++11
 OBJS=sprite.o window.o Main.o Board.o Minimax.o
 LFLAGS=-lSDL2 -lSDL2_image
-DEPS=Lab309_ADT_Container.h Lab309_ADT_DoublyLinkedList.h Lab309_ADT_Matrix.h vertex.h
+CFLAGS=-O3
+DEPS=Lab309_ADT_Container.h Lab309_ADT_DoublyLinkedList.h Lab309_ADT_Matrix.h Board.h
 
 %.o: %.cpp $(DEPS)
-	$(CXX) -c $< $(LFLAGS)
+	$(CXX) $(CFLAGS) -c $< $(LFLAGS)
 	
 main: $(OBJS)
-	$(CXX) -o main $(OBJS) $(LFLAGS)
+	$(CXX) $(CFLAGS) -o main $(OBJS) $(LFLAGS)
 	
 clean:
 	rm -f *.o

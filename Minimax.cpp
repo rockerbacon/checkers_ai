@@ -134,3 +134,24 @@ std::list<const lab309::State*> lab309::minimax (const State &currentState, unsi
 	
 	return list;
 }
+
+std::list<const lab309::State*> lab309::maximin (const State &currentState, unsigned int maxDepth) {
+	std::list<const State*> list;
+	//std::cout << "Cpu is thinking" << std::endl;	//debug
+	Node* bestPlay = minimaxSearch(new Node(&currentState, INFINITY, NULL), Min(), Max(), INFINITY, -INFINITY, maxDepth);
+	//std::cout << "Cpu decided something" << std::endl;	//debug
+	Node *n;
+	Node *next;
+	
+	//create list with the expected state path
+	n = bestPlay;
+	while (n->father != NULL) {
+		next = n->father;
+		list.push_front(n->state);
+		delete(n);
+		n = next;
+	}
+	delete(n);
+	
+	return list;
+}

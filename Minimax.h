@@ -24,6 +24,7 @@ namespace lab309 {
 	
 	//returns an ordered list of the states in the path of a Minimax search result given the current state and a maximum depth for the search
 	std::list<const State*> minimax (const State &currentState, unsigned int maxDepth);
+	std::list<const State*> maximin (const State &currentState, unsigned int maxDepth);	//same as minimax but the lowest value is searched instead
 };
 
 #endif

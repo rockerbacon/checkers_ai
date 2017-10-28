@@ -86,7 +86,14 @@ class CPU : public Player {
 		}
 		
 		void play (void) const {
-			std::list<const State*> stateList = minimax(*board, this->maxDepth);
+			std::cout << "The computer is thinking..." << std::endl;	//debug
+			std::list<const State*> stateList;
+			
+			if (board->isWhiteTurn()) {
+				stateList = minimax(*board, this->maxDepth);
+			} else {
+				stateList = maximin(*board, this->maxDepth);
+			}
 			//delete(board);
 			//std::cout << stateList.size() << std::endl;	//debug
 			board = (Board*)stateList.front();
@@ -153,35 +160,40 @@ int main (int argc, char **args) {
 		std::cout << "Please identify the players" << std::endl;
 		return 2;
 	}
+	
 	reader = args[argi];
 	if (reader.compare("cpu") == 0) {
 		unsigned int difficulty;
-		if (argi++ >= argc) {
+		argi++;
+		if (argi >= argc) {
 			std::cout << "Please identify the difficulty for the CPU" << std::endl;
 			return 2;
 		}
-		difficulty = std::stoul(args[argi++]);
+		difficulty = std::stoul(args[argi]);
 		whitePlayer = new CPU(difficulty);
 	} else if (reader.compare("player") == 0) {
 		whitePlayer = new Human();
 	} else {
-		std::cout << "Invalid player, make sure all letters are lowercase" << std::endl;
+		std::cout << "Invalid 1st player, make sure all letters are lowercase" << std::endl;
 		return 1;
 	}
 	argi++;
+	
 	reader = args[argi];
+	std::cout << reader << std::endl;	//debug
 	if (reader.compare("cpu") == 0) {
 		unsigned int difficulty;
-		if (argi++ >= argc) {
+		argi++;
+		if (argi >= argc) {
 			std::cout << "Please identify the difficulty for the CPU" << std::endl;
 			return 2;
 		}
-		difficulty = std::stoul(args[argi++]);
+		difficulty = std::stoul(args[argi]);
 		blackPlayer = new CPU(difficulty);
 	} else if (reader.compare("player") == 0) {
 		blackPlayer = new Human();
 	} else {
-		std::cout << "Invalid player, make sure all letters are lowercase" << std::endl;
+		std::cout << "Invalid 2nd player, make sure all letters are lowercase" << std::endl;
 		return 1;
 	}
 
