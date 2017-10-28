@@ -204,7 +204,7 @@ bool lab309::Board::checkerCanMove (const Direction &direction) const {
 	//piece can only move in its turn
 	result = result && (this->hasWhiteCheckerAt(this->toggledChecker) && this->isWhiteTurn() || this->hasBlackCheckerAt(this->toggledChecker) && this->isBlackTurn());
 	
-	//result = result && (this->hasWhiteCheckerAt(this->toggledChecker) && !this->whiteHasCapture() || this->hasBlackCheckerAt(this->toggledChecker) && !this->blackHasCapture());	//can only move if checker has no available capture
+	result = result && (this->hasWhiteCheckerAt(this->toggledChecker) && !this->whiteHasCapture() || this->hasBlackCheckerAt(this->toggledChecker) && !this->blackHasCapture());	//can only move if checker has no available capture
 	
 	if (direction.isForwards()) {
 		//can only move forwards if checker is a white or a promoted black
