@@ -16,7 +16,7 @@
 #define WINDOW_WIDTH 800
 #define WINDOW_HEIGHT 640
 
-#define CPU_DELAY 150
+#define CPU_DELAY 200
 
 using namespace lab309;
 
@@ -52,7 +52,8 @@ class Human : public Player {
 							std::cout << "White's turn" << std::endl;
 						} else {
 							std::cout << "Black's turn" << std::endl;
-						}	
+						}
+						//std::cout << board->evaluate() << std::endl;	//debug	
 					}	
 				}
 			
@@ -105,6 +106,7 @@ class CPU : public Player {
 			} else {
 				std::cout << "Black's turn" << std::endl;
 			}
+			//std::cout << board->evaluate() << std::endl;	//debug
 			
 			//clear memory of states
 			//std::cout << "cleaning memory" << std::endl;	//debug

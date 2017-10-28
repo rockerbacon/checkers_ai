@@ -204,7 +204,7 @@ bool lab309::Board::checkerCanMove (const Direction &direction) const {
 	//piece can only move in its turn
 	result = result && (this->hasWhiteCheckerAt(this->toggledChecker) && this->isWhiteTurn() || this->hasBlackCheckerAt(this->toggledChecker) && this->isBlackTurn());
 	
-	result = result && (this->hasWhiteCheckerAt(this->toggledChecker) && !this->whiteHasCapture() || this->hasBlackCheckerAt(this->toggledChecker) && !this->blackHasCapture());	//can only move if checker has no available capture
+	//result = result && (this->hasWhiteCheckerAt(this->toggledChecker) && !this->whiteHasCapture() || this->hasBlackCheckerAt(this->toggledChecker) && !this->blackHasCapture());	//can only move if checker has no available capture
 	
 	if (direction.isForwards()) {
 		//can only move forwards if checker is a white or a promoted black
@@ -268,18 +268,18 @@ float lab309::Board::evaluate (void) const {
 	float score = 0;
 	Direction	forwardsLeft = Direction(LEFT|FORWARDS),
 				forwardsRight = Direction(RIGHT|FORWARDS),
-				backwardsLeft = Direction(LEFT|BACKWARDS),
-				backwardsRight = Direction(RIGHT|BACKWARDS);			
+				backwardsLeft = Direction(BACKWARDS|LEFT),
+				backwardsRight = Direction(BACKWARDS|RIGHT);			
 	
 	for (int i = 0; i < BOARD_COLUMS/2*BOARD_LINES; i++) {
 		if (this->hasWhiteCheckerAt(i)) {
 			score += SCORE_WHITE_CHECKER * (this->hasPromotedCheckerAt(i) ? SCORE_PROMOTED_MULTIPLIER : 1);
-			score += this->hasWhiteCheckerAt(forwardsLeft+i) ? SCORE_WHITE_COVER : 0;
-			score += this->hasWhiteCheckerAt(forwardsRight+i) ? SCORE_WHITE_COVER : 0;
+			score += (forwardsLeft.inboundsFor(i) && this->hasWhiteCheckerAt(forwardsLeft+i)) ? SCORE_WHITE_COVER : 0;
+			score += (forwardsRight.inboundsFor(i) && this->hasWhiteCheckerAt(forwardsRight+i)) ? SCORE_WHITE_COVER : 0;
 		} else if (this->hasBlackCheckerAt(i)) {
 			score += SCORE_BLACK_CHECKER * (this->hasPromotedCheckerAt(i) ? SCORE_PROMOTED_MULTIPLIER : 1);
-			score += this->hasBlackCheckerAt(backwardsLeft+i) ? SCORE_BLACK_COVER : 0;
-			score += this->hasBlackCheckerAt(backwardsRight+i) ? SCORE_BLACK_COVER : 0;
+			score += (backwardsLeft.inboundsFor(i) && this->hasBlackCheckerAt(backwardsLeft+i)) ? SCORE_BLACK_COVER : 0;
+			score += (backwardsRight.inboundsFor(i) && this->hasBlackCheckerAt(backwardsRight+i)) ? SCORE_BLACK_COVER : 0;
 		}
 	}
 	
