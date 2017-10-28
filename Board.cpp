@@ -181,6 +181,8 @@ bool lab309::Board::checkerCanCapture (const Direction &direction) const {
 	bool result;
 	
 	result = over.inboundsFor(this->toggledChecker) && this->hasEmptySquareAt(over+this->toggledChecker);	//can only capture if the square in that direction is whitin bounds and empty
+	//piece can only move in its turn
+	result = result && (this->hasWhiteCheckerAt(this->toggledChecker) && this->isWhiteTurn() || this->hasBlackCheckerAt(this->toggledChecker) && this->isBlackTurn());
 	if (direction.isForwards()) {
 		//can only move forwards if checker is a white or a promoted black
 		result = result && (this->hasWhiteCheckerAt(this->toggledChecker) || this->hasPromotedCheckerAt(this->toggledChecker));
@@ -199,6 +201,8 @@ bool lab309::Board::checkerCanMove (const Direction &direction) const {
 	bool result;
 	
 	result = direction.inboundsFor(this->toggledChecker) && this->hasEmptySquareAt(direction+this->toggledChecker);	//can only move if the square in that direction is whitin bounds and empty
+	//piece can only move in its turn
+	result = result && (this->hasWhiteCheckerAt(this->toggledChecker) && this->isWhiteTurn() || this->hasBlackCheckerAt(this->toggledChecker) && this->isBlackTurn());
 	
 	result = result && (this->hasWhiteCheckerAt(this->toggledChecker) && !this->whiteHasCapture() || this->hasBlackCheckerAt(this->toggledChecker) && !this->blackHasCapture());	//can only move if checker has no available capture
 	
@@ -214,46 +218,35 @@ bool lab309::Board::checkerCanMove (const Direction &direction) const {
 }
 
 /*METHODS*/
-int lab309::Board::toggleCheckerAt (int i) const {
-	if (this->hasWhiteCheckerAt(i) && this->isWhiteTurn() || this->hasBlackCheckerAt(i) && this->isBlackTurn()) {
-		this->toggledChecker = i;
-		//std::cout << "Checker at " << i << " selected" << std::endl;	//debug
-	} else {
-		this->toggledChecker = -1;
-	}
-	
-	return this->toggledChecker;	
+void lab309::Board::toggleCheckerAt (int i) const {
+	this->toggledChecker = i;	
 }
 
 bool lab309::Board::moveChecker (const Direction &direction) {
 	bool valid = false;
 	int moved;
+	bool switchTurn;
 	
 	if (this->checkerCanMove(direction)) {
 		this->checkers[direction+this->toggledChecker] = this->checkers[this->toggledChecker];	//moves checker
 		this->checkers[this->toggledChecker] = EMPTY_SQUARE;	//removes checker
 		moved = direction+this->toggledChecker;
-		this->toggledChecker = -1;
-		this->turn++;
+		switchTurn = true;
 		valid = true;
 	} else if (this->checkerCanCapture(direction)) {
-		bool switchTurn = true;
 		this->checkers[direction*2+this->toggledChecker] = this->checkers[this->toggledChecker];	//moves checker
 		this->checkers[direction+this->toggledChecker] = EMPTY_SQUARE;	//removes opponent checker
 		this->checkers[this->toggledChecker] = EMPTY_SQUARE;	//removes checker
 		moved = direction*2+this->toggledChecker;
 		
 		//chain captures
-		this->toggledChecker = direction*2+this->toggledChecker;
+		this->toggleCheckerAt(moved);
+		switchTurn = true;
 		for (int j = 0; j < POSSIBLE_DIRECTIONS; j++) {
 			if (this->checkerCanCapture(Board::moveDirections[j])) {
 				switchTurn = false;
 				break;
 			}
-		}
-		if (switchTurn) {
-			this->turn++;
-			this->toggledChecker = -1;	
 		}
 		valid = true;
 	}
@@ -263,14 +256,10 @@ bool lab309::Board::moveChecker (const Direction &direction) {
 		this->checkers[moved] |= PROMOTED_CHECKER;
 	}
 	
-	//debug
-	/*
-	if (this->isWhiteTurn()) {
-		std::cout << "White plays " << this->turn << std::endl;
-	} else {
-		std::cout << "Black plays " << this->turn << std::endl;
+	if (switchTurn) {
+		this->turn++;
+		this->toggledChecker = -1;	
 	}
-	*/
 	
 	return valid;
 }
@@ -299,51 +288,53 @@ float lab309::Board::evaluate (void) const {
 
 std::list<lab309::State*> lab309::Board::nextStates (void) const {
 	Board *next;
-	std::list<State*> states;
-	for (int i = 0; i < BOARD_LINES*BOARD_COLUMS/2; i++) {
-		if (!this->hasEmptySquareAt(i)) {
-			this->toggledChecker = i;
-			for (int j = 0; j < POSSIBLE_DIRECTIONS; j++) {
-				if (this->checkerCanMove(Board::moveDirections[j]) || this->checkerCanCapture(Board::moveDirections[j])) {
-					next = new Board(*this);
-					next->moveChecker(Board::moveDirections[j]);
-					states.push_back(next);
-				}
+	std::list<State*> nextStates;
+	int toggled = this->toggledChecker;
+	
+	for (int i = 0; i < BOARD_COLUMS/2*BOARD_LINES; i++) {
+		this->toggleCheckerAt(i);
+		for (int j = 0; j < POSSIBLE_DIRECTIONS; j++) {
+			if (this->checkerCanMove(Board::moveDirections[j]) || this->checkerCanCapture(Board::moveDirections[j])) {
+				next = new Board(*this);
+				next->moveChecker(Board::moveDirections[j]);
+				nextStates.push_back(next);
 			}
-		}	
+		}
 	}
 	
-	return states;
+	//std::cout << nextStates.size() << std::endl;	//debug
+	this->toggleCheckerAt(toggled);
+	return nextStates;
 }
 
-//game is over if there are no movements left for one of the players
-int lab309::Board::isFinal (void) const {
+//game is over if the current player cannot move
+bool lab309::Board::isFinal (void) const {
 	int i, j;
-	int moves = WHITE_CANNOT_MOVE|BLACK_CANNOT_MOVE;
+	int toggled = this->toggledChecker;
 	
 	for (i = 0; i < BOARD_LINES*BOARD_COLUMS/2; i++) {
-		if (this->hasWhiteCheckerAt(i)) {
-			this->toggledChecker = i;
-			for (j = 0; j < POSSIBLE_DIRECTIONS; j++) {
-				if (this->checkerCanMove(Board::moveDirections[j]) || this->checkerCanCapture(Board::moveDirections[j])) {
-					moves &= ~WHITE_CANNOT_MOVE;
-					break;
-				}
+		this->toggleCheckerAt(i);
+		for (j = 0; j < POSSIBLE_DIRECTIONS; j++) {
+			if (this->checkerCanMove(Board::moveDirections[j]) || this->checkerCanCapture(Board::moveDirections[j])) {
+				this->toggleCheckerAt(toggled);
+				return false;
 			}
 		}
 	}
+
+	this->toggleCheckerAt(toggled);
+	return true;
+}
+
+std::string lab309::Board::toString (void) const {
+	std::ostringstream stream;
 	
-	for (i = 0; i < BOARD_LINES*BOARD_COLUMS/2; i++) {
-		if (this->hasBlackCheckerAt(i)) {
-			this->toggledChecker = i;
-			for (j = 0; j < POSSIBLE_DIRECTIONS; j++) {
-				if (this->checkerCanMove(Board::moveDirections[j]) || this->checkerCanCapture(Board::moveDirections[j])) {
-					moves &= ~BLACK_CANNOT_MOVE;
-					break;
-				}
-			}
-		}
+	int i;
+	stream << "[";
+	for (i = 0; i < BOARD_COLUMS/2*BOARD_LINES-1; i++) {
+		stream << std::to_string(this->checkers[i]) << ", ";
 	}
+	stream << std::to_string(this->checkers[i]) << "]";
 	
-	return moves;
+	return stream.str();
 }

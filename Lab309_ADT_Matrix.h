@@ -59,6 +59,9 @@ namespace lab309 {
 			Matrix<dataType>& operator= (const Matrix<dataType> &matrix);
 			Matrix<dataType>& operator= (Matrix<dataType> &&matrix);
 			
+			bool operator== (const Matrix<dataType> &matrix) const;
+			inline bool operator!= (const Matrix<dataType> &matrix) const { return !(*this==matrix); }
+			
 	};
 	
 	template<typename dataType, typename any>

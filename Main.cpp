@@ -1,63 +1,127 @@
+/*
+ * Checkers game with AI using minimax with alpha-beta prunning as AI
+ * The program call should be: ./<executable> <white player> <black player>
+ * The players can be:
+ *		"player" for a human player to play using the left mouse button to move the pieces
+ *		"cpu" <difficulty> for a cpu to play using the minimax algorithm. The difficulty can be any value greater than 0
+ *
+ */
+
 #include "sprite.h"
 #include "Board.h"
 #include "window.h"
 #include <iostream>
+#include "Minimax.h"
 
 #define WINDOW_WIDTH 800
 #define WINDOW_HEIGHT 640
 
+#define CPU_DELAY 150
+
 using namespace lab309;
 
+Window *window;
 int highlightedSquareIndex[POSSIBLE_DIRECTIONS] = { -1, -1, -1, -1 };
+Board *board;
+Vector<int> lastClick = {-1, -1};
 
-bool handleInput (const Window *window, Board &board) {
+class Player {
+	public:
+		virtual void play (void) const = 0;
+};
+
+class Human : public Player {
+	public:
+		void play (void) const {
+			
+			if (lastClick != Vector<int>({-1, -1})) {
+				int click = mapGridToChecker(mapPixelToGrid(*window, lastClick));
+				if (board->hasWhiteCheckerAt(click) && board->isWhiteTurn() || board->hasBlackCheckerAt(click) && board->isBlackTurn()) {
+					board->toggleCheckerAt(click);
+				} else {
+					//determine click direction
+					int d = 0;
+					while (	d < POSSIBLE_DIRECTIONS && click != Board::moveDirections[d]+board->getToggled() &&
+							!(click == Board::moveDirections[d]*2+board->getToggled() && board->checkerCanCapture(Board::moveDirections[d])) ) {
+						d++;
+					}
+					if (d != POSSIBLE_DIRECTIONS) {
+						board->moveChecker(Board::moveDirections[d]);
+						//debug
+						if (board->isWhiteTurn()) {
+							std::cout << "White's turn" << std::endl;
+						} else {
+							std::cout << "Black's turn" << std::endl;
+						}	
+					}	
+				}
+			
+				//highlight possible movements
+				for (int i = 0; i < POSSIBLE_DIRECTIONS; i++) {
+					//std::cout << Board::moveDirections[i]+board->getToggled() << std::endl;	//debug
+					if (board->checkerCanMove(Board::moveDirections[i])) {
+						highlightedSquareIndex[i] = Board::moveDirections[i]+board->getToggled();
+						//std::cout << "Can move at direction " << i << std::endl;	//debug
+					} else if (board->checkerCanCapture(Board::moveDirections[i])) {
+						highlightedSquareIndex[i] = Board::moveDirections[i]*2+board->getToggled();
+						//std::cout << "Can capture at direction " << i << std::endl;	//debug
+					} else {
+						highlightedSquareIndex[i] = -1;
+					}
+					//std::cout << highlightedSquareIndex[i] << std::endl;	//debug
+				}
+				
+				lastClick = {-1, -1};
+			}
+		}
+};
+
+class CPU : public Player {
+	private:
+		unsigned int maxDepth;
+		
+	public:
+		CPU (unsigned int difficulty) {
+			this->maxDepth = difficulty;
+		}
+		
+		void play (void) const {
+			std::list<const State*> stateList = minimax(*board, this->maxDepth);
+			//delete(board);
+			std::cout << stateList.size() << std::endl;	//debug
+			board = (Board*)stateList.front();
+			stateList.pop_front();
+			
+			//debug
+			if (board->isWhiteTurn()) {
+				std::cout << "White's turn" << std::endl;
+			} else {
+				std::cout << "Black's turn" << std::endl;
+			}
+			
+			//clear memory of states
+			//std::cout << "cleaning memory" << std::endl;	//debug
+			for (const State *s : stateList) {
+				//std::cout << ((Board*)s)->toString() << std::endl;	//debug
+				delete(s);
+			}
+			//std::cout << "memory cleaned" << std::endl;	//debug
+			SDL_Delay(CPU_DELAY);
+		}
+};
+
+bool handleInput (void) {
 	SDL_Event event;
 	
 	while (SDL_PollEvent(&event) != 0) {
 		if (event.type == SDL_QUIT) {
 			return false;
-		} else if (event.type == SDL_KEYUP) {
-			switch (event.key.keysym.sym) {
-				case SDLK_RIGHT:
-				break;
-			}
-		} else if (event.type == SDL_MOUSEBUTTONUP) {
+		} else 	if (event.type == SDL_MOUSEBUTTONUP) {
 			if (event.button.button == SDL_BUTTON_LEFT) {
-				int click = mapGridToChecker(mapPixelToGrid(*window, {event.button.x, event.button.y}));
-				if (board.hasWhiteCheckerAt(click) && board.isWhiteTurn() || board.hasBlackCheckerAt(click) && board.isBlackTurn()) {
-					board.toggleCheckerAt(click);
-					//std::cout << mapPixelToGrid(*window, {event.button.x, event.button.y})[COORDINATE_X] << ", " << mapPixelToGrid(*window, {event.button.x, event.button.y})[COORDINATE_Y] << std::endl;	//debug
-				} else {
-					//determine click direction
-					int d = 0;
-					while (d < POSSIBLE_DIRECTIONS) {
-						if (click == Board::moveDirections[d]+board.getToggled() || click == Board::moveDirections[d]*2+board.getToggled() && board.checkerCanCapture(Board::moveDirections[d])) {
-							break;
-						}
-						d++;
-					}
-					if (d != POSSIBLE_DIRECTIONS) {
-						board.moveChecker(Board::moveDirections[d]);
-					}	
-				}
-				
+				lastClick = { event.button.x, event.button.y };
 			}
-			
-			//highlight possible movements
-			for (int i = 0; i < POSSIBLE_DIRECTIONS; i++) {
-				//std::cout << Board::moveDirections[i]+board.getToggled() << std::endl;	//debug
-				if (board.checkerCanMove(Board::moveDirections[i])) {
-					highlightedSquareIndex[i] = Board::moveDirections[i]+board.getToggled();
-					//std::cout << "Can move at direction " << i << std::endl;	//debug
-				} else if (board.checkerCanCapture(Board::moveDirections[i])) {
-					highlightedSquareIndex[i] = Board::moveDirections[i]*2+board.getToggled();
-					//std::cout << "Can capture at direction " << i << std::endl;	//debug
-				} else {
-					highlightedSquareIndex[i] = -1;
-				}
-				//std::cout << highlightedSquareIndex[i] << std::endl;	//debug
-			}
-		}
+		}	
+		
 	}
 	
 	return true;
@@ -66,7 +130,6 @@ bool handleInput (const Window *window, Board &board) {
 
 int main (int argc, char **args) {
 
-	Window *window;
 	SDL_Surface	*texture_whiteSquare,
 				*texture_blackSquare,
 				*texture_whiteChecker,
@@ -80,13 +143,53 @@ int main (int argc, char **args) {
 			*highlightedSquare,
 			*promotedWhiteChecker,
 			*promotedBlackChecker;
-	Board board;
 	bool running;
+	Player *whitePlayer, *blackPlayer;
+	std::string reader;
+	int argi = 1;
+	
+	//read players
+	if (argi >= argc) {
+		std::cout << "Please identify the players" << std::endl;
+		return 2;
+	}
+	reader = args[argi];
+	if (reader.compare("cpu") == 0) {
+		unsigned int difficulty;
+		if (argi++ >= argc) {
+			std::cout << "Please identify the difficulty for the CPU" << std::endl;
+			return 2;
+		}
+		difficulty = std::stoul(args[argi++]);
+		whitePlayer = new CPU(difficulty);
+	} else if (reader.compare("player") == 0) {
+		whitePlayer = new Human();
+	} else {
+		std::cout << "Invalid player, make sure all letters are lowercase" << std::endl;
+		return 1;
+	}
+	argi++;
+	reader = args[argi];
+	if (reader.compare("cpu") == 0) {
+		unsigned int difficulty;
+		if (argi++ >= argc) {
+			std::cout << "Please identify the difficulty for the CPU" << std::endl;
+			return 2;
+		}
+		difficulty = std::stoul(args[argi++]);
+		blackPlayer = new CPU(difficulty);
+	} else if (reader.compare("player") == 0) {
+		blackPlayer = new Human();
+	} else {
+		std::cout << "Invalid player, make sure all letters are lowercase" << std::endl;
+		return 1;
+	}
 
 	SDL_Init(SDL_INIT_VIDEO);
 	IMG_Init(IMG_INIT_PNG);
 	
 	//initialize window
+	board = new Board();
 	window = new Window("Checkers", WINDOW_WIDTH, WINDOW_HEIGHT, LIMIT_30FPS);
 	
 	//load textures
@@ -108,6 +211,7 @@ int main (int argc, char **args) {
 	
 	running = true;
 	
+	std::cout << "White begins" << std::endl;	//debug
 	while (running) {
 		int drawSquare = 0;
 		
@@ -121,12 +225,13 @@ int main (int argc, char **args) {
 			}
 			drawSquare = (drawSquare+1)%2;
 		}
+		//std::cout << "board drawed" << std::endl;	//debug
 		
 		//draw checkers
 		for (int i = 0; i < BOARD_LINES*BOARD_COLUMS/2; i++) {
 			//std::cout << mapCheckerToGrid(i)[COORDINATE_X] << ", " << mapCheckerToGrid(i)[COORDINATE_Y] << std::endl;	//debug
-			if (board.hasWhiteCheckerAt(i)) {
-				if (board.hasPromotedCheckerAt(i)) {
+			if (board->hasWhiteCheckerAt(i)) {
+				if (board->hasPromotedCheckerAt(i)) {
 					promotedWhiteChecker->setPos((Vector<float>)mapGridToPixel(*window, mapCheckerToGrid(i)));
 					promotedWhiteChecker->blitTo(*window);
 				} else {
@@ -134,8 +239,8 @@ int main (int argc, char **args) {
 					whiteChecker->blitTo(*window);				
 				}
 				//std::cout << whiteChecker->getXPos() << ", " << whiteChecker->getYPos() << std::endl;	//debug
-			} else if (board.hasBlackCheckerAt(i)) {
-				if (board.hasPromotedCheckerAt(i)) {
+			} else if (board->hasBlackCheckerAt(i)) {
+				if (board->hasPromotedCheckerAt(i)) {
 					promotedBlackChecker->setPos((Vector<float>)mapGridToPixel(*window, mapCheckerToGrid(i)));
 					promotedBlackChecker->blitTo(*window);
 				} else {
@@ -144,6 +249,7 @@ int main (int argc, char **args) {
 				}
 			}
 		}
+		//std::cout << "checkers drawed" << std::endl;	//debug
 		
 		//draw highlights
 		for (int i = 0; i < POSSIBLE_DIRECTIONS; i++) {
@@ -152,15 +258,38 @@ int main (int argc, char **args) {
 				highlightedSquare->blitTo(*window);
 			}
 		}
+		//std::cout << "highlights drawed" << std::endl;	//debug
 		
 		window->update();
+		running = handleInput();
 		
-		running = handleInput(window, board);
+		//std::cout << "window updated" << std::endl;	//debug
+		
+		//players
+		if (board->isWhiteTurn()) {
+			//std::cout << "white's turn" << std::endl;	//debug
+			whitePlayer->play();
+		} else {
+			//std::cout << "black's turn" << std::endl;	//debug
+			blackPlayer->play();
+		}
+		
+		//check endgame
+		if (board->isFinal()) {
+			if (board->isWhiteTurn()) {
+				std::cout << "BLACK WINS!" << std::endl;	//debug
+			} else {
+				std::cout << "WHITE WINS!" << std::endl;	//debug
+			}
+			goto EXIT;
+		}
+		
 	}
 	
 
 EXIT:
 	delete(window);
+	delete(board);
 	
 	//free textures
 	SDL_FreeSurface(texture_whiteSquare);
@@ -168,6 +297,11 @@ EXIT:
 	SDL_FreeSurface(texture_whiteChecker);
 	SDL_FreeSurface(texture_blackChecker);
 	SDL_FreeSurface(texture_highlightedSquare);
+	SDL_FreeSurface(texture_promotedWhiteChecker);
+	SDL_FreeSurface(texture_promotedBlackChecker);
+	
+	delete(whitePlayer);
+	delete(blackPlayer);
 	
 	//free sprites
 	delete(emptySquare[0]);
@@ -175,6 +309,8 @@ EXIT:
 	delete(whiteChecker);
 	delete(blackChecker);
 	delete(highlightedSquare);
+	delete(promotedWhiteChecker);
+	delete(promotedBlackChecker);
 		
 	SDL_Quit();
 	return 0;

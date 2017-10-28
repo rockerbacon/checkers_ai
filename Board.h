@@ -11,6 +11,8 @@
 #include "window.h"
 #include "Minimax.h"
 #include <list>
+#include <iostream>
+#include <sstream>
 
 #define EMPTY_SQUARE 0
 #define WHITE_CHECKER 0x1
@@ -92,12 +94,14 @@ namespace lab309 {
 			bool checkerCanMove (const Direction &direction) const;	//does not check for capture rules
 			
 			//methods
-			int toggleCheckerAt (int i) const;
+			void toggleCheckerAt (int i) const;
 			bool moveChecker (const Direction &direction);
 			
 			float evaluate (void) const;
 			std::list<State*> nextStates (void) const;
-			int isFinal (void) const;
+			bool isFinal (void) const;
+			
+			std::string toString (void) const;
 			
 	};
 };

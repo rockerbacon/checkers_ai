@@ -189,6 +189,25 @@ lab309::Matrix<dataType>& lab309::Matrix<dataType>::operator= (Matrix<dataType> 
 }
 
 template<typename dataType>
+bool lab309::Matrix<dataType>::operator== (const Matrix<dataType> &matrix) const {
+	size_t i, j;
+	
+	if (this->lines != matrix.lines || this->colums != matrix.colums) {
+		return false;
+	}
+	
+	for (i = 0; i < this->lines; i++) {
+		for (j = 0; j < this->colums; j++) {
+			if ((*this)[i][j] != matrix[i][j]) {
+				return false;
+			}
+		}
+	}
+	
+	return true;		
+}
+
+template<typename dataType>
 lab309::Matrix<dataType> lab309::normalize (const Matrix<dataType> &matrix) {
 	Matrix<dataType> normalized(matrix.getLines(), matrix.getColums());
 	dataType norm = 0;
