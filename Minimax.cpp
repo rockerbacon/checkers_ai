@@ -2,6 +2,8 @@
 #include <math.h>
 #include <cstddef>
 #include <iostream>
+#include <stdlib.h>
+#include <time.h>
 
 namespace lab309 {
 
@@ -35,6 +37,10 @@ namespace lab309 {
 					for (std::list<Node*>::iterator i = stateList.begin()++; i != stateList.end(); ++i) {
 						if ((*i)->value < (*min)->value) {
 							min = i;
+						} else if ((*i)->value == (*min)->value) {
+							if (rand()&0x1) {
+								min = i;
+							}
 						}
 					}
 				}
@@ -55,6 +61,10 @@ namespace lab309 {
 					for (std::list<Node*>::iterator i = stateList.begin()++; i != stateList.end(); ++i) {
 						if ((*i)->value > (*max)->value) {
 							max = i;
+						} else if ((*i)->value == (*max)->value) {
+							if (rand()&0x1) {
+								max = i;
+							}
 						}
 					}
 				}
@@ -67,9 +77,10 @@ namespace lab309 {
 			}
 	};
 	
-	Node* minimaxSearch (Node *currentNode, const DecisionFunction &pickBestIn, const DecisionFunction &pickWorstIn, float alpha, float beta, unsigned int depthLimit) {
-		if (currentNode->state->isFinal() || depthLimit == 0) {
-			currentNode->value = currentNode->state->evaluate();
+	Node* minimaxSearch (Node *currentNode, const DecisionFunction &pickBestIn, const DecisionFunction &pickWorstIn, float alpha, float beta, unsigned int depthLimit, float(*evaluate)(const State*, int)) {
+		int isFinal = currentNode->state->isFinal();
+		if (isFinal || depthLimit == 0) {
+			currentNode->value = (*evaluate)(currentNode->state, isFinal);
 			return currentNode;
 		} else {
 			std::list<State*> nextStates;
@@ -79,6 +90,7 @@ namespace lab309 {
 			//create list with next valid nodes from current node
 			//std::cout << "generating states" << std::endl;	//debug
 			nextStates = currentNode->state->nextStates();
+
 			//std::cout << "states generated: " << nextStates.size() << std::endl;	//debug
 			for (State *s : nextStates) {
 				childNodes.push_back(new Node(s, pickWorstIn.g(-INFINITY, INFINITY), currentNode));
@@ -86,7 +98,7 @@ namespace lab309 {
 			
 			//analyze nodes recursively
 			for (std::list<Node*>::iterator n = childNodes.begin(); n != childNodes.end(); n++) {
-				*n = minimaxSearch (*n, pickWorstIn, pickBestIn, beta, alpha, depthLimit-1);	//invert decision functions, beta and alpha to switch playing sides
+				*n = minimaxSearch (*n, pickWorstIn, pickBestIn, beta, alpha, depthLimit-1, evaluate);	//invert decision functions, beta and alpha to switch playing sides
 				
 				//prune in case a opponent play is already better than what was found in a previous path
 				if (pickBestIn.g((*n)->value, beta) == (*n)->value) {
@@ -98,6 +110,7 @@ namespace lab309 {
 			}
 			
 		RETURN:
+			srand(time(NULL));
 			bestPlay = pickBestIn.f(childNodes);
 			
 			//free memory of unused nodes
@@ -115,11 +128,11 @@ namespace lab309 {
 	} 
 };
 
-std::list<const lab309::State*> lab309::minimax (const State &currentState, unsigned int maxDepth) {
+std::list<const lab309::State*> lab309::minimax (const State &currentState, unsigned int maxDepth, float(*evaluate)(const State*, int)) {
 	std::list<const State*> list;
 	float alpha = -INFINITY, beta = INFINITY;
 	//std::cout << "Cpu is thinking" << std::endl;	//debug
-	Node* bestPlay = minimaxSearch(new Node(&currentState, -INFINITY, NULL), Max(), Min(), alpha, beta, maxDepth);
+	Node* bestPlay = minimaxSearch(new Node(&currentState, -INFINITY, NULL), Max(), Min(), alpha, beta, maxDepth, evaluate);
 	//std::cout << "Cpu decided something" << std::endl;	//debug
 	Node *n;
 	Node *next;
@@ -137,11 +150,11 @@ std::list<const lab309::State*> lab309::minimax (const State &currentState, unsi
 	return list;
 }
 
-std::list<const lab309::State*> lab309::maximin (const State &currentState, unsigned int maxDepth) {
+std::list<const lab309::State*> lab309::maximin (const State &currentState, unsigned int maxDepth, float(*evaluate)(const State*, int)) {
 	std::list<const State*> list;
 	float alpha = -INFINITY, beta = INFINITY;
 	//std::cout << "Cpu is thinking" << std::endl;	//debug
-	Node* bestPlay = minimaxSearch(new Node(&currentState, INFINITY, NULL), Min(), Max(), beta, alpha, maxDepth);
+	Node* bestPlay = minimaxSearch(new Node(&currentState, INFINITY, NULL), Min(), Max(), beta, alpha, maxDepth, evaluate);
 	//std::cout << "Cpu decided something" << std::endl;	//debug
 	Node *n;
 	Node *next;

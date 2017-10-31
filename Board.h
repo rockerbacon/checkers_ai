@@ -31,15 +31,8 @@
 
 #define POSSIBLE_DIRECTIONS 4
 
-//Scores used for the heuristic
-#define SCORE_WHITE_CHECKER 3
-#define SCORE_BLACK_CHECKER -3
-#define SCORE_PROMOTED_MULTIPLIER 2
-#define SCORE_WHITE_COVER 1
-#define SCORE_BLACK_COVER -1
-
-#define WHITE_CANNOT_MOVE 0x1
-#define BLACK_CANNOT_MOVE 0x2
+#define WHITE_WINS 0x1
+#define BLACK_WINS 0x2
 
 namespace lab309 {
 	
@@ -97,9 +90,8 @@ namespace lab309 {
 			void toggleCheckerAt (int i) const;
 			bool moveChecker (const Direction &direction);
 			
-			float evaluate (void) const;
 			std::list<State*> nextStates (void) const;
-			bool isFinal (void) const;
+			int isFinal (void) const;
 			
 			bool operator== (const Board &b) const;
 			inline bool operator!= (const Board &b) const { return !(*this == b); }
@@ -107,6 +99,9 @@ namespace lab309 {
 			std::string toString (void) const;
 			
 	};
+
+	float evaluate1 (const State *state, int isFinal);
+	float evaluate2 (const State *state, int isFinal);
 };
 
 #endif

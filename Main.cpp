@@ -4,6 +4,7 @@
  * The players can be:
  *		"player" for a human player to play using the left mouse button to move the pieces
  *		"cpu" <difficulty> for a cpu to play using the minimax algorithm. The difficulty can be any value greater than 0
+ * The computer is more strategic when playing white and more aggressive when playing black
  *
  */
 
@@ -18,12 +19,20 @@
 
 #define CPU_DELAY 200
 
+#define DRAW_REPEATED 3
+
 using namespace lab309;
 
 Window *window;
 int highlightedSquareIndex[POSSIBLE_DIRECTIONS] = { -1, -1, -1, -1 };
 Board *board;
 Vector<int> lastClick = {-1, -1};
+
+void switchState (Board *state) {
+	delete(board);
+	board = state;
+	//std::cout << "state switched" << std::endl;	//debug
+}
 
 class Player {
 	public:
@@ -46,7 +55,9 @@ class Human : public Player {
 						d++;
 					}
 					if (d != POSSIBLE_DIRECTIONS) {
-						board->moveChecker(Board::moveDirections[d]);
+						Board *newState = new Board(*board);
+						newState->moveChecker(Board::moveDirections[d]);
+						switchState(newState);
 						//debug
 						if (board->isWhiteTurn()) {
 							std::cout << "White's turn" << std::endl;
@@ -108,16 +119,15 @@ class CPU : public Player {
 				//std::cout << "memory cleaned" << std::endl;	//debug
 				
 				if (board->isWhiteTurn()) {
-					this->actions = minimax(*board, this->maxDepth);
+					this->actions = minimax(*board, this->maxDepth, &lab309::evaluate1);
 				} else {
-					this->actions = maximin(*board, this->maxDepth);
+					this->actions = maximin(*board, this->maxDepth, &lab309::evaluate2);
 				}
+				std::cout << "Best found state: " << lab309::evaluate1((Board*)this->actions.back(), this->actions.back()->isFinal()) << std::endl;	//debug
 			}	
 			
-			
-			delete(board);
 			//std::cout << stateList.size() << std::endl;	//debug
-			board = (Board*)this->actions.front();
+			switchState((Board*)this->actions.front());
 			this->actions.pop_front();
 			
 			//debug
@@ -291,7 +301,7 @@ int main (int argc, char **args) {
 		running = handleInput();
 		
 		//std::cout << "window updated" << std::endl;	//debug
-		
+
 		//players
 		if (board->isWhiteTurn()) {
 			//std::cout << "white's turn" << std::endl;	//debug
@@ -300,13 +310,13 @@ int main (int argc, char **args) {
 			//std::cout << "black's turn" << std::endl;	//debug
 			blackPlayer->play();
 		}
-		
+
 		//check endgame
-		if (board->isFinal()) {
-			if (board->isWhiteTurn()) {
-				std::cout << "BLACK WINS!" << std::endl;	//debug
-			} else {
+		if (int end = board->isFinal()) {
+			if (end == WHITE_WINS) {
 				std::cout << "WHITE WINS!" << std::endl;	//debug
+			} else {
+				std::cout << "BLACK WINS!" << std::endl;	//debug
 			}
 			goto EXIT;
 		}

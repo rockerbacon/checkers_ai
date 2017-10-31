@@ -1,5 +1,22 @@
 #include "Board.h"
 
+//Scores used for the heuristic 1
+#define SCORE1_WHITE_CHECKER 3
+#define SCORE1_BLACK_CHECKER -3
+#define SCORE1_PROMOTED_MULTIPLIER 2
+#define SCORE1_WHITE_COVER 1.5
+#define SCORE1_BLACK_COVER -1.5
+
+//scores used for the heuristic 2
+#define SCORE2_WHITE_CHECKER 4
+#define SCORE2_BLACK_CHECKER -4
+#define SCORE2_PROMOTED_MULTIPLIER 1.5
+#define SCORE2_WHITE_COVER 0.1
+#define SCORE2_BLACK_COVER -0.1
+
+#define SCORE_WHITE_WINS 1000
+#define SCORE_BLACK_WINS -1000
+
 lab309::Vector<int> lab309::mapPixelToGrid (const Window &window, const Vector<int> &pixel) {
 	Vector<int> v(2);
 	int gridWidth = window.getWidth()/BOARD_COLUMS;
@@ -176,6 +193,7 @@ bool lab309::Board::blackHasCapture (void) const {
 	return false;
 }
 
+
 bool lab309::Board::checkerCanCapture (const Direction &direction) const {
 	Direction over = direction*2;
 	bool result;
@@ -264,28 +282,6 @@ bool lab309::Board::moveChecker (const Direction &direction) {
 	return valid;
 }
 
-float lab309::Board::evaluate (void) const {
-	float score = 0;
-	Direction	forwardsLeft = Direction(LEFT|FORWARDS),
-				forwardsRight = Direction(RIGHT|FORWARDS),
-				backwardsLeft = Direction(BACKWARDS|LEFT),
-				backwardsRight = Direction(BACKWARDS|RIGHT);			
-	
-	for (int i = 0; i < BOARD_COLUMS/2*BOARD_LINES; i++) {
-		if (this->hasWhiteCheckerAt(i)) {
-			score += SCORE_WHITE_CHECKER * (this->hasPromotedCheckerAt(i) ? SCORE_PROMOTED_MULTIPLIER : 1);
-			score += (forwardsLeft.inboundsFor(i) && this->hasWhiteCheckerAt(forwardsLeft+i)) ? SCORE_WHITE_COVER : 0;
-			score += (forwardsRight.inboundsFor(i) && this->hasWhiteCheckerAt(forwardsRight+i)) ? SCORE_WHITE_COVER : 0;
-		} else if (this->hasBlackCheckerAt(i)) {
-			score += SCORE_BLACK_CHECKER * (this->hasPromotedCheckerAt(i) ? SCORE_PROMOTED_MULTIPLIER : 1);
-			score += (backwardsLeft.inboundsFor(i) && this->hasBlackCheckerAt(backwardsLeft+i)) ? SCORE_BLACK_COVER : 0;
-			score += (backwardsRight.inboundsFor(i) && this->hasBlackCheckerAt(backwardsRight+i)) ? SCORE_BLACK_COVER : 0;
-		}
-	}
-	
-	return score;
-}
-
 std::list<lab309::State*> lab309::Board::nextStates (void) const {
 	Board *next;
 	std::list<State*> nextStates;
@@ -308,7 +304,7 @@ std::list<lab309::State*> lab309::Board::nextStates (void) const {
 }
 
 //game is over if the current player cannot move
-bool lab309::Board::isFinal (void) const {
+int lab309::Board::isFinal (void) const {
 	int i, j;
 	int toggled = this->toggledChecker;
 	
@@ -317,13 +313,13 @@ bool lab309::Board::isFinal (void) const {
 		for (j = 0; j < POSSIBLE_DIRECTIONS; j++) {
 			if (this->checkerCanMove(Board::moveDirections[j]) || this->checkerCanCapture(Board::moveDirections[j])) {
 				this->toggleCheckerAt(toggled);
-				return false;
+				return 0;
 			}
 		}
 	}
 
 	this->toggleCheckerAt(toggled);
-	return true;
+	return this->isWhiteTurn() ? BLACK_WINS : WHITE_WINS;
 }
 
 bool lab309::Board::operator== (const Board &board) const {
@@ -347,4 +343,63 @@ std::string lab309::Board::toString (void) const {
 	stream << std::to_string(this->checkers[i]) << "]";
 	
 	return stream.str();
+}
+
+float lab309::evaluate1 (const State *state, int isFinal) {
+	float score = 0;
+	const Board *board = (Board*)state;
+	Direction	forwardsLeft = Direction(LEFT|FORWARDS),
+				forwardsRight = Direction(RIGHT|FORWARDS),
+				backwardsLeft = Direction(BACKWARDS|LEFT),
+				backwardsRight = Direction(BACKWARDS|RIGHT);			
+	
+	for (int i = 0; i < BOARD_COLUMS/2*BOARD_LINES; i++) {
+		if (board->hasWhiteCheckerAt(i)) {
+			score += SCORE1_WHITE_CHECKER * (board->hasPromotedCheckerAt(i) ? SCORE1_PROMOTED_MULTIPLIER : 1);
+			score += (forwardsLeft.inboundsFor(i) && board->hasWhiteCheckerAt(forwardsLeft+i)) ? SCORE1_WHITE_COVER : 0;
+			score += (forwardsRight.inboundsFor(i) && board->hasWhiteCheckerAt(forwardsRight+i)) ? SCORE1_WHITE_COVER : 0;
+		} else if (board->hasBlackCheckerAt(i)) {
+			score += SCORE1_BLACK_CHECKER * (board->hasPromotedCheckerAt(i) ? SCORE1_PROMOTED_MULTIPLIER : 1);
+			score += (backwardsLeft.inboundsFor(i) && board->hasBlackCheckerAt(backwardsLeft+i)) ? SCORE1_BLACK_COVER : 0;
+			score += (backwardsRight.inboundsFor(i) && board->hasBlackCheckerAt(backwardsRight+i)) ? SCORE1_BLACK_COVER : 0;
+		}
+	}
+
+	if (isFinal == WHITE_WINS) {
+		score += SCORE_WHITE_WINS;
+	} else if (isFinal == BLACK_WINS) {
+		score += SCORE_BLACK_WINS;
+	}
+	
+	return score;
+}
+
+float lab309::evaluate2 (const State *state, int isFinal) {
+	float score = 0;
+	const Board *board = (Board*)state;
+	Direction	forwardsLeft = Direction(LEFT|FORWARDS),
+				forwardsRight = Direction(RIGHT|FORWARDS),
+				backwardsLeft = Direction(BACKWARDS|LEFT),
+				backwardsRight = Direction(BACKWARDS|RIGHT);			
+	
+	for (int i = 0; i < BOARD_COLUMS/2*BOARD_LINES; i++) {
+		if (board->hasWhiteCheckerAt(i)) {
+			score += SCORE2_WHITE_CHECKER * (board->hasPromotedCheckerAt(i) ? SCORE2_PROMOTED_MULTIPLIER : 1);
+			//
+			score += (forwardsLeft.inboundsFor(i) && board->hasWhiteCheckerAt(forwardsLeft+i)) ? SCORE2_WHITE_COVER : 0;
+			score += (forwardsRight.inboundsFor(i) && board->hasWhiteCheckerAt(forwardsRight+i)) ? SCORE2_WHITE_COVER : 0;
+		} else if (board->hasBlackCheckerAt(i)) {
+			score += SCORE2_BLACK_CHECKER * (board->hasPromotedCheckerAt(i) ? SCORE2_PROMOTED_MULTIPLIER : 1);
+			score += (backwardsLeft.inboundsFor(i) && board->hasBlackCheckerAt(backwardsLeft+i)) ? SCORE2_BLACK_COVER : 0;
+			score += (backwardsRight.inboundsFor(i) && board->hasBlackCheckerAt(backwardsRight+i)) ? SCORE2_BLACK_COVER : 0;
+		}
+	}
+
+	if (isFinal == WHITE_WINS) {
+		score += SCORE_WHITE_WINS;
+	} else if (isFinal == BLACK_WINS) {
+		score += SCORE_BLACK_WINS;
+	}
+	
+	return score;
 }
